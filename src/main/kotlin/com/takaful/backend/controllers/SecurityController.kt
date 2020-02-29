@@ -12,8 +12,13 @@ import org.springframework.web.bind.annotation.*
 class SecurityController @Autowired constructor(val userService: UserService) {
 
     @PostMapping("/auth/register")
-    fun addUser(@RequestBody userRegisterRequest: UserRegisterRequest): ResponseEntity<UserRegisterResponse> {
+    fun registerUser(@RequestBody userRegisterRequest: UserRegisterRequest): ResponseEntity<UserRegisterResponse> {
         return ResponseEntity.ok(userService.registerUser(userRegisterRequest))
+    }
+
+    @PostMapping("/auth/token")
+    fun authenticateUser(@RequestBody tokenRequest: UserTokenRequest): ResponseEntity<TokenResponse> {
+        return ResponseEntity.ok(userService.authenticateUser(tokenRequest))
     }
 
 
@@ -25,10 +30,23 @@ class SecurityController @Autowired constructor(val userService: UserService) {
 // in a separating file
 data class UserRegisterRequest(
         val username: String,
-        val password: String
+        val password: String,
+        val phone: String,
+        val fullName: String,
+        val pictureUrl: String
 )
 
 data class UserRegisterResponse(
         val success: Boolean,
         val message: String
+)
+
+data class UserTokenRequest(
+        val username: String,
+        val password: String
+)
+
+data class TokenResponse(
+        val success: Boolean,
+        val jwtToken: String
 )
