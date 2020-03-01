@@ -1,9 +1,6 @@
 package com.takaful.backend.service.implementation
 
-import com.takaful.backend.controllers.TokenResponse
-import com.takaful.backend.controllers.UserTokenRequest
-import com.takaful.backend.controllers.UserRegisterRequest
-import com.takaful.backend.controllers.UserRegisterResponse
+import com.takaful.backend.controllers.*
 import com.takaful.backend.data.entites.User
 import com.takaful.backend.data.repos.UserRepository
 import com.takaful.backend.security.JwtProvider
@@ -14,6 +11,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import kotlin.math.log
 
 @Service
 class UserServiceImpl @Autowired constructor(val passwordEncoder: PasswordEncoder,
@@ -59,6 +57,21 @@ class UserServiceImpl @Autowired constructor(val passwordEncoder: PasswordEncode
             TokenResponse(true, jwtProvider.generateJwtToken(authentication))
         } catch (ex: Exception) {
             TokenResponse(false, "error")
+        }
+    }
+
+
+    override fun getUserProfile(userTokenRequest: UserTokenRequest): UserProfileResponse {
+        return try {
+            val authentication = authenticationManager.authenticate(
+                    UsernamePasswordAuthenticationToken(
+                            userTokenRequest.username,
+                            userTokenRequest.password))
+            SecurityContextHolder.getContext().authentication = authentication
+            val userData=userRepository.findUserByUsername(userTokenRequest.username)
+            UserProfileResponse(userData.phone,userData.fullName,userData.pictureUrl,userData.medications,userData.reports,userData.preservations,userData.suggestions,userData.notifications)
+        } catch (ex: Exception) {
+            throw Exception(ex)
         }
     }
 

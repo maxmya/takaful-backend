@@ -14,7 +14,7 @@ data class Notification(
         val body: String,
         val timestamp: Timestamp,
         @ManyToOne
-        @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+        @JoinColumn(name = "user_notified", referencedColumnName = "id", nullable = false)
         val notifiedUser: User,
         @ManyToOne
         @JoinColumn(name = "preservation_id", referencedColumnName = "id", nullable = true)

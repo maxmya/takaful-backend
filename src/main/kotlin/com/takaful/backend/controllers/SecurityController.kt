@@ -1,5 +1,6 @@
 package com.takaful.backend.controllers
 
+import com.takaful.backend.data.entites.*
 import com.takaful.backend.service.freamwork.UserService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
@@ -21,6 +22,10 @@ class SecurityController @Autowired constructor(val userService: UserService) {
         return ResponseEntity.ok(userService.authenticateUser(tokenRequest))
     }
 
+    @PostMapping("/auth/login")
+    fun getUser(@RequestBody tokenRequest: UserTokenRequest): ResponseEntity<UserProfileResponse> {
+        return ResponseEntity.ok(userService.getUserProfile(tokenRequest))
+    }
 
 }
 
@@ -49,4 +54,14 @@ data class UserTokenRequest(
 data class TokenResponse(
         val success: Boolean,
         val jwtToken: String
+)
+data class UserProfileResponse(
+        val phone: String,
+        val fullName: String,
+        val pictureUrl: String,
+        val medications: List<Medication>,
+        val reports: List<Report>,
+        val preservations: List<Preservation>,
+        val suggestions: List<Suggestion>,
+        val notifications: List<Notification>
 )
