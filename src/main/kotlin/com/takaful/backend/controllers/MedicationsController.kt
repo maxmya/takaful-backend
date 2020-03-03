@@ -14,7 +14,7 @@ class MedicationsController @Autowired constructor(val medicationsService: Medic
 
     @GetMapping("/auth/medications")
     fun registerUser( @RequestParam(value = "page", defaultValue = "1", required = false)  page:String,
-                      @RequestParam(value = "size", defaultValue = "1", required = false)  size:String): ResponseEntity<Pageable<*>> {
+                      @RequestParam(value = "size", defaultValue = "20", required = false)  size:String): ResponseEntity<Pageable<*>> {
         return ResponseEntity.ok(medicationsService.getAllMedications(page =page.toInt() ,size = size.toInt()))
     }
 }
