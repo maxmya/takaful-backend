@@ -18,20 +18,3 @@ class MedicationsController @Autowired constructor(val medicationsService: Medic
         return ResponseEntity.ok(medicationsService.getAllMedications(page =page.toInt() ,size = size.toInt()))
     }
 }
-data class Medications(
-        val id: Int,
-        val name: String,
-        val lang: Double,
-        val lat: Double,
-        val imageUrl: String,
-        val addressTitle: String,
-        val userId:Int,
-        val phone: String,
-        val fullName: String,
-        val pictureUrl: String,
-        val categoryId: Int,
-        val categoryName: String,
-        val categoryImageUrl: String,
-        val preserverId: Int,
-        val preservingTimeStamp: Timestamp
-)

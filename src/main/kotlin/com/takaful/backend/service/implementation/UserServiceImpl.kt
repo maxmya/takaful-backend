@@ -3,6 +3,7 @@ package com.takaful.backend.service.implementation
 import com.takaful.backend.controllers.*
 import com.takaful.backend.data.entites.User
 import com.takaful.backend.data.repos.UserRepository
+import com.takaful.backend.data.to.*
 import com.takaful.backend.security.JwtProvider
 import com.takaful.backend.service.freamwork.UserService
 import org.springframework.beans.factory.annotation.Autowired
@@ -69,7 +70,28 @@ class UserServiceImpl @Autowired constructor(val passwordEncoder: PasswordEncode
                             userTokenRequest.password))
             SecurityContextHolder.getContext().authentication = authentication
             val userData=userRepository.findUserByUsername(userTokenRequest.username)
-            UserProfileResponse(userData.phone,userData.fullName,userData.pictureUrl,userData.medications,userData.reports,userData.preservations,userData.suggestions,userData.notifications)
+            val listOfMedications= mutableListOf<Medications>()
+            val listOfReports= mutableListOf<Report>()
+            val listOfPreservations= mutableListOf<Preservations>()
+            val listOfNotifications= mutableListOf<Notifications>()
+            val listOfSuggestions= mutableListOf<Suggestions>()
+            for (medicine in userData.medications) {
+                val user=MedicineUser(medicine.user.id,medicine.user.username,medicine.user.phone,medicine.user.fullName,medicine.user.pictureUrl)
+                val category=MedicineCategory(medicine.category.id,medicine.category.name,medicine.category.imageUrl)
+                val preserver=Preservations(medicine.preservation.id,medicine.preservation.timestamp)
+                listOfMedications.add( Medications(medicine.id,medicine.name,medicine.lang,medicine.lat,medicine.imageUrl,medicine.addressTitle,user,category,preserver))
+            }
+            for (report in userData.reports) {
+                listOfReports.add(Report(report.id,report.payload,report.timestamp))
+            }
+
+            for (notification in userData.notifications) {
+                listOfNotifications.add(Notifications(notification.id,notification.title,notification.body,notification.timestamp))
+            }
+            for (suggestion in userData.suggestions) {
+                listOfSuggestions.add(Suggestions(suggestion.id,suggestion.type,suggestion.timestamp,suggestion.title,suggestion.body))
+            }
+            UserProfileResponse(userData.id,userData.phone,userData.fullName,userData.pictureUrl,listOfMedications,listOfReports,listOfSuggestions,listOfNotifications)
         } catch (ex: Exception) {
             throw Exception(ex)
         }
