@@ -5,18 +5,20 @@ import com.takaful.backend.data.entites.User
 import com.takaful.backend.data.repos.UserRepository
 import com.takaful.backend.data.to.*
 import com.takaful.backend.security.JwtProvider
+import com.takaful.backend.service.freamwork.MedicationsService
 import com.takaful.backend.service.freamwork.UserService
+import org.hibernate.service.spi.ServiceException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
-import kotlin.math.log
 
 @Service
-class UserServiceImpl @Autowired constructor(val passwordEncoder: PasswordEncoder,
-                                             val userRepository: UserRepository,
+class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
+                                             val medicationsService: MedicationsService,
+                                             val passwordEncoder: PasswordEncoder,
                                              val authenticationManager: AuthenticationManager,
                                              val jwtProvider: JwtProvider) : UserService {
 
@@ -37,17 +39,15 @@ class UserServiceImpl @Autowired constructor(val passwordEncoder: PasswordEncode
 
             userRepository.save(user)
 
-            UserRegisterResponse(true, "user ${user.username} registered successful");
+            UserRegisterResponse(true, "user ${user.username} registered successful")
         } catch (e: Exception) {
-            UserRegisterResponse(false, "an error has occurred" + e.message);
+            UserRegisterResponse(false, "an error has occurred" + e.message)
         }
     }
 
 
     // notice that if return comes after control statements
     // like (try-if-when-switch) the last line object will be returned
-
-
     override fun authenticateUser(userTokenRequest: UserTokenRequest): TokenResponse {
         return try {
             val authentication = authenticationManager.authenticate(
@@ -63,37 +63,54 @@ class UserServiceImpl @Autowired constructor(val passwordEncoder: PasswordEncode
 
 
     override fun getUserProfile(userTokenRequest: UserTokenRequest): UserProfileResponse {
+
         return try {
+
             val authentication = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken(
                             userTokenRequest.username,
                             userTokenRequest.password))
             SecurityContextHolder.getContext().authentication = authentication
-            val userData=userRepository.findUserByUsername(userTokenRequest.username)
-            val listOfMedications= mutableListOf<Medications>()
-            val listOfReports= mutableListOf<Report>()
-            val listOfPreservations= mutableListOf<Preservations>()
-            val listOfNotifications= mutableListOf<Notifications>()
-            val listOfSuggestions= mutableListOf<Suggestions>()
+            val token = jwtProvider.generateJwtToken(authentication)
+
+            val userData = userRepository.findUserByUsername(userTokenRequest.username)
+
+            val listOfMedications = mutableListOf<MedicationsDTO>()
+            val listOfReports = mutableListOf<ReportDTO>()
+            val listOfPreservations = mutableListOf<PreservationsDTO>()
+            val listOfNotifications = mutableListOf<NotificationDTO>()
+            val listOfSuggestions = mutableListOf<SuggestionsDTO>()
+
             for (medicine in userData.medications) {
-                val user=MedicineUser(medicine.user.id,medicine.user.username,medicine.user.phone,medicine.user.fullName,medicine.user.pictureUrl)
-                val category=MedicineCategory(medicine.category.id,medicine.category.name,medicine.category.imageUrl)
-                val preserver=Preservations(medicine.preservation.id,medicine.preservation.timestamp)
-                listOfMedications.add( Medications(medicine.id,medicine.name,medicine.lang,medicine.lat,medicine.imageUrl,medicine.addressTitle,user,category,preserver))
+                listOfMedications.add(medicationsService.convertMedicationEntityToDTO(medicine))
             }
+
             for (report in userData.reports) {
-                listOfReports.add(Report(report.id,report.payload,report.timestamp))
+                listOfReports.add(ReportDTO(report.id, report.payload, report.timestamp))
             }
 
             for (notification in userData.notifications) {
-                listOfNotifications.add(Notifications(notification.id,notification.title,notification.body,notification.timestamp))
+                listOfNotifications.add(NotificationDTO(notification.id, notification.title, notification.body, notification.timestamp))
             }
+
             for (suggestion in userData.suggestions) {
-                listOfSuggestions.add(Suggestions(suggestion.id,suggestion.type,suggestion.timestamp,suggestion.title,suggestion.body))
+                listOfSuggestions.add(SuggestionsDTO(suggestion.id, suggestion.type, suggestion.timestamp, suggestion.title, suggestion.body))
             }
-            UserProfileResponse(userData.id,userData.phone,userData.fullName,userData.pictureUrl,listOfMedications,listOfReports,listOfSuggestions,listOfNotifications)
+
+            UserProfileResponse(
+                    userData.id,
+                    userData.phone,
+                    userData.fullName,
+                    userData.pictureUrl,
+                    token,
+                    listOfMedications,
+                    listOfReports,
+                    listOfSuggestions,
+                    listOfNotifications,
+                    listOfPreservations)
+
         } catch (ex: Exception) {
-            throw Exception(ex)
+            throw ServiceException("cannot get user profile")
         }
     }
 

@@ -1,4 +1,4 @@
-package com.takaful.backend.service.implementation
+package com.takaful.backend.utils
 
 data class Pagination (
         var currentPage: Int = 0,

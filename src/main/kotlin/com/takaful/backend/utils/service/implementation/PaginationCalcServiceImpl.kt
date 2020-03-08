@@ -1,6 +1,8 @@
-package com.takaful.backend.service.implementation
+package com.takaful.backend.utils.service.implementation
 
-import com.takaful.backend.service.freamwork.PaginationCalcService
+import com.takaful.backend.utils.service.freamwork.PaginationCalcService
+import com.takaful.backend.utils.Pageable
+import com.takaful.backend.utils.Pagination
 import org.springframework.stereotype.Service
 
 @Service
@@ -10,8 +12,8 @@ class PaginationCalcServiceImpl : PaginationCalcService {
         val pagination = Pagination()
         var next: Boolean
         val lastPage: Int
-        var startIndex = 0
-        var endIndex = listToBePaged.size
+        var startIndex: Int
+        var endIndex: Int
         val pageable: Pageable<*> = Pageable<Any>()
         val tempList: List<Any>
 
