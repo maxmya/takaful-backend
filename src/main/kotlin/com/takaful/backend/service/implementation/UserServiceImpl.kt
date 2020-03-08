@@ -1,11 +1,9 @@
 package com.takaful.backend.service.implementation
 
-import com.takaful.backend.controllers.TokenResponse
-import com.takaful.backend.controllers.UserTokenRequest
-import com.takaful.backend.controllers.UserRegisterRequest
-import com.takaful.backend.controllers.UserRegisterResponse
+import com.takaful.backend.controllers.*
 import com.takaful.backend.data.entites.User
 import com.takaful.backend.data.repos.UserRepository
+import com.takaful.backend.data.to.*
 import com.takaful.backend.security.JwtProvider
 import com.takaful.backend.service.freamwork.UserService
 import org.springframework.beans.factory.annotation.Autowired
@@ -14,6 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import kotlin.math.log
 
 @Service
 class UserServiceImpl @Autowired constructor(val passwordEncoder: PasswordEncoder,
@@ -59,6 +58,42 @@ class UserServiceImpl @Autowired constructor(val passwordEncoder: PasswordEncode
             TokenResponse(true, jwtProvider.generateJwtToken(authentication))
         } catch (ex: Exception) {
             TokenResponse(false, "error")
+        }
+    }
+
+
+    override fun getUserProfile(userTokenRequest: UserTokenRequest): UserProfileResponse {
+        return try {
+            val authentication = authenticationManager.authenticate(
+                    UsernamePasswordAuthenticationToken(
+                            userTokenRequest.username,
+                            userTokenRequest.password))
+            SecurityContextHolder.getContext().authentication = authentication
+            val userData=userRepository.findUserByUsername(userTokenRequest.username)
+            val listOfMedications= mutableListOf<Medications>()
+            val listOfReports= mutableListOf<Report>()
+            val listOfPreservations= mutableListOf<Preservations>()
+            val listOfNotifications= mutableListOf<Notifications>()
+            val listOfSuggestions= mutableListOf<Suggestions>()
+            for (medicine in userData.medications) {
+                val user=MedicineUser(medicine.user.id,medicine.user.username,medicine.user.phone,medicine.user.fullName,medicine.user.pictureUrl)
+                val category=MedicineCategory(medicine.category.id,medicine.category.name,medicine.category.imageUrl)
+                val preserver=Preservations(medicine.preservation.id,medicine.preservation.timestamp)
+                listOfMedications.add( Medications(medicine.id,medicine.name,medicine.lang,medicine.lat,medicine.imageUrl,medicine.addressTitle,user,category,preserver))
+            }
+            for (report in userData.reports) {
+                listOfReports.add(Report(report.id,report.payload,report.timestamp))
+            }
+
+            for (notification in userData.notifications) {
+                listOfNotifications.add(Notifications(notification.id,notification.title,notification.body,notification.timestamp))
+            }
+            for (suggestion in userData.suggestions) {
+                listOfSuggestions.add(Suggestions(suggestion.id,suggestion.type,suggestion.timestamp,suggestion.title,suggestion.body))
+            }
+            UserProfileResponse(userData.id,userData.phone,userData.fullName,userData.pictureUrl,listOfMedications,listOfReports,listOfSuggestions,listOfNotifications)
+        } catch (ex: Exception) {
+            throw Exception(ex)
         }
     }
 
