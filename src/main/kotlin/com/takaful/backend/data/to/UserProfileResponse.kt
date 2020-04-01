@@ -5,10 +5,6 @@ data class UserProfileResponse(
         val phone: String,
         val fullName: String,
         val pictureUrl: String,
-        val token: String,
-        val medications: List<MedicationsDTO>,
-        val reportDTOS: List<ReportDTO>,
-        val suggestions: List<SuggestionsDTO>,
-        val notifications: List<NotificationDTO>,
-        val preservations: List<PreservationsDTO>
+        val token: String
+
 )

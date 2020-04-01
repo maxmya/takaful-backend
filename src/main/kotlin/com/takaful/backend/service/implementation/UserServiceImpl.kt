@@ -75,44 +75,50 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
 
             val userData = userRepository.findUserByUsername(userTokenRequest.username)
 
-            val listOfMedications = mutableListOf<MedicationsDTO>()
-            val listOfReports = mutableListOf<ReportDTO>()
-            val listOfPreservations = mutableListOf<PreservationsDTO>()
-            val listOfNotifications = mutableListOf<NotificationDTO>()
-            val listOfSuggestions = mutableListOf<SuggestionsDTO>()
-
-            for (medicine in userData.medications) {
-                listOfMedications.add(medicationsService.convertMedicationEntityToDTO(medicine))
-            }
-
-            for (report in userData.reports) {
-                listOfReports.add(ReportDTO(report.id, report.payload, report.timestamp))
-            }
-
-            for (notification in userData.notifications) {
-                listOfNotifications.add(NotificationDTO(notification.id, notification.title, notification.body, notification.timestamp))
-            }
-
-            for (suggestion in userData.suggestions) {
-                listOfSuggestions.add(SuggestionsDTO(suggestion.id, suggestion.type, suggestion.timestamp, suggestion.title, suggestion.body))
-            }
-
             UserProfileResponse(
                     userData.id,
                     userData.phone,
                     userData.fullName,
                     userData.pictureUrl,
-                    token,
-                    listOfMedications,
-                    listOfReports,
-                    listOfSuggestions,
-                    listOfNotifications,
-                    listOfPreservations)
+                    token)
 
         } catch (ex: Exception) {
             throw ServiceException("cannot get user profile")
         }
     }
 
+    override fun changeUserProfile(token:String,changeProfile: ChangeProfileRequest): ConfirmationClass {
 
+        return try {
+
+            val username = jwtProvider.getUserNameFromJwtToken(token)
+            if(changeProfile.fullName=="" || changeProfile.phone=="" || changeProfile.userName==""){
+                return ConfirmationClass(false,"user data  is Empty")
+            }
+            if(username == ""){
+                return ConfirmationClass(false,"UserName is Empty")
+            }
+            if (userRepository.existsByUsername(changeProfile.userName)) {
+                return ConfirmationClass(false, "user ${changeProfile.userName} is already taken")
+            }else {
+                val userData = userRepository.findUserByUsername(username)
+
+                val user = User(
+                        id = userData.id,
+                        username = changeProfile.userName,
+                        password = userData.password,
+                        phone = changeProfile.phone,
+                        fullName = changeProfile.fullName,
+                        pictureUrl = changeProfile.pictureUrl)
+                userRepository.save(user)
+
+                ConfirmationClass(true, "User profile changed Successfully")
+
+            }
+
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            ConfirmationClass(false,"error")
+        }
+    }
 }

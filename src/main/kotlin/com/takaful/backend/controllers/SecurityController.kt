@@ -26,6 +26,12 @@ class SecurityController @Autowired constructor(val userService: UserService) {
     fun getUser(@RequestBody tokenRequest: UserTokenRequest): ResponseEntity<UserProfileResponse> {
         return ResponseEntity.ok(userService.getUserProfile(tokenRequest))
     }
+    @PutMapping("/auth/user")
+    fun changeUserProfile(@RequestHeader ("Authorization")  tokenAuth:String,
+                          @RequestBody changeProfileRequest: ChangeProfileRequest): ResponseEntity<ConfirmationClass> {
+        val token=tokenAuth.replace("Bearer ", "")
+        return ResponseEntity.ok(userService.changeUserProfile(token,changeProfileRequest))
+    }
 
 }
 
@@ -54,4 +60,11 @@ data class UserTokenRequest(
 data class TokenResponse(
         val success: Boolean,
         val jwtToken: String
+)
+data class ChangeProfileRequest(
+        val phone: String,
+        val fullName: String,
+        val pictureUrl: String,
+        val userName: String
+
 )
