@@ -29,8 +29,8 @@ class SecurityController @Autowired constructor(val userService: UserService) {
     }
     @PutMapping("/auth/user")
     fun changeUserProfile(@RequestHeader ("Authorization")  tokenAuth:String,
-                          @RequestBody changeProfileRequest: ChangeProfileRequest,
-                          @RequestPart file:MultipartFile): ResponseEntity<ConfirmationClass> {
+                          @RequestPart(name = "body") changeProfileRequest: ChangeProfileRequest,
+                          @RequestPart(name = "file") file:MultipartFile): ResponseEntity<ConfirmationClass> {
         val token=tokenAuth.replace("Bearer ", "")
         return ResponseEntity.ok(userService.changeUserProfile(token,changeProfileRequest,file))
     }
