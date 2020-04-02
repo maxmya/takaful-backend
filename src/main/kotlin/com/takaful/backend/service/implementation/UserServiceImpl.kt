@@ -3,7 +3,8 @@ package com.takaful.backend.service.implementation
 import com.takaful.backend.controllers.*
 import com.takaful.backend.data.entites.User
 import com.takaful.backend.data.repos.UserRepository
-import com.takaful.backend.data.to.*
+import com.takaful.backend.data.to.ConfirmationClass
+import com.takaful.backend.data.to.UserProfileResponse
 import com.takaful.backend.security.JwtProvider
 import com.takaful.backend.service.freamwork.MedicationsService
 import com.takaful.backend.service.freamwork.UserService
@@ -14,6 +15,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import org.springframework.web.multipart.MultipartFile
+import java.io.ByteArrayInputStream
+import java.io.InputStream
+
 
 @Service
 class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
@@ -87,10 +92,9 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
         }
     }
 
-    override fun changeUserProfile(token:String,changeProfile: ChangeProfileRequest): ConfirmationClass {
+    override fun changeUserProfile(token:String,changeProfile: ChangeProfileRequest,file: MultipartFile): ConfirmationClass {
 
         return try {
-
             val username = jwtProvider.getUserNameFromJwtToken(token)
             if(changeProfile.fullName=="" || changeProfile.phone=="" || changeProfile.userName==""){
                 return ConfirmationClass(false,"user data  is Empty")
@@ -102,14 +106,18 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
                 return ConfirmationClass(false, "user ${changeProfile.userName} is already taken")
             }else {
                 val userData = userRepository.findUserByUsername(username)
-
+                var inputStream: String=changeProfile.pictureUrl;
+                if(!file.isEmpty){
+                    val byteArr = file.bytes
+                    inputStream = ByteArrayInputStream(byteArr).toString()
+                }
                 val user = User(
                         id = userData.id,
                         username = changeProfile.userName,
                         password = userData.password,
                         phone = changeProfile.phone,
                         fullName = changeProfile.fullName,
-                        pictureUrl = changeProfile.pictureUrl)
+                        pictureUrl = inputStream)
                 userRepository.save(user)
 
                 ConfirmationClass(true, "User profile changed Successfully")

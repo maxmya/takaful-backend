@@ -5,6 +5,7 @@ import com.takaful.backend.service.freamwork.UserService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.multipart.MultipartFile
 
 
 @CrossOrigin(origins = ["*"], allowedHeaders = ["*"])
@@ -28,9 +29,10 @@ class SecurityController @Autowired constructor(val userService: UserService) {
     }
     @PutMapping("/auth/user")
     fun changeUserProfile(@RequestHeader ("Authorization")  tokenAuth:String,
-                          @RequestBody changeProfileRequest: ChangeProfileRequest): ResponseEntity<ConfirmationClass> {
+                          @RequestBody changeProfileRequest: ChangeProfileRequest,
+                          @RequestPart file:MultipartFile): ResponseEntity<ConfirmationClass> {
         val token=tokenAuth.replace("Bearer ", "")
-        return ResponseEntity.ok(userService.changeUserProfile(token,changeProfileRequest))
+        return ResponseEntity.ok(userService.changeUserProfile(token,changeProfileRequest,file))
     }
 
 }
