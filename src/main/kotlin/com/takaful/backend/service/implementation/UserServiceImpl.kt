@@ -6,6 +6,7 @@ import com.takaful.backend.data.repos.UserRepository
 import com.takaful.backend.data.to.ConfirmationClass
 import com.takaful.backend.data.to.UserProfileResponse
 import com.takaful.backend.security.JwtProvider
+import com.takaful.backend.service.freamwork.FilesStorageService
 import com.takaful.backend.service.freamwork.MedicationsService
 import com.takaful.backend.service.freamwork.UserService
 import org.hibernate.service.spi.ServiceException
@@ -28,7 +29,7 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
                                              val passwordEncoder: PasswordEncoder,
                                              val authenticationManager: AuthenticationManager,
                                              val jwtProvider: JwtProvider,
-                                             val filesStorageServiceImpl: FilesStorageServiceImpl) : UserService {
+                                             val filesStorageService: FilesStorageService) : UserService {
 
     override fun registerUser(userRegisterRequest: UserRegisterRequest)
             : UserRegisterResponse {
@@ -111,7 +112,7 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
                 val userData = userRepository.findUserByUsername(username)
                 var imgUrl: String=changeProfile.pictureUrl;
                 if(!file.isEmpty){
-                    imgUrl= filesStorageServiceImpl.save(file)
+                    imgUrl= filesStorageService.save(file)
                 }
                 val user = User(
                         id = userData.id,

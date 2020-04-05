@@ -15,13 +15,15 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.util.stream.Stream
+import javax.annotation.PostConstruct
 
 @Service
 class FilesStorageServiceImpl : FilesStorageService {
     private val root = Paths.get("uploads")
+    @PostConstruct
     override fun init() {
         try {
-            Files.createDirectory(root)
+            if (Files.notExists(root)) Files.createDirectory(root)
         } catch (e: IOException) {
             throw RuntimeException("Could not initialize folder for upload!")
         }
