@@ -16,8 +16,10 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
-import java.io.ByteArrayInputStream
-import java.io.InputStream
+import sun.security.krb5.Confounder.bytes
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 
 @Service
@@ -25,7 +27,8 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
                                              val medicationsService: MedicationsService,
                                              val passwordEncoder: PasswordEncoder,
                                              val authenticationManager: AuthenticationManager,
-                                             val jwtProvider: JwtProvider) : UserService {
+                                             val jwtProvider: JwtProvider,
+                                             val filesStorageServiceImpl: FilesStorageServiceImpl) : UserService {
 
     override fun registerUser(userRegisterRequest: UserRegisterRequest)
             : UserRegisterResponse {
@@ -106,10 +109,9 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
                 return ConfirmationClass(false, "user ${changeProfile.userName} is already taken")
             }else {
                 val userData = userRepository.findUserByUsername(username)
-                var inputStream: String=changeProfile.pictureUrl;
+                var imgUrl: String=changeProfile.pictureUrl;
                 if(!file.isEmpty){
-                    val byteArr = file.bytes
-                    inputStream = ByteArrayInputStream(byteArr).toString()
+                    imgUrl= filesStorageServiceImpl.save(file)
                 }
                 val user = User(
                         id = userData.id,
@@ -117,7 +119,7 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
                         password = userData.password,
                         phone = changeProfile.phone,
                         fullName = changeProfile.fullName,
-                        pictureUrl = inputStream)
+                        pictureUrl = imgUrl)
                 userRepository.save(user)
 
                 ConfirmationClass(true, "User profile changed Successfully")
