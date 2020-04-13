@@ -5,7 +5,7 @@ import javax.persistence.*
 
 
 @Entity
-@Table(name = "reports_table", schema = "public", catalog = "takaful-db")
+@Table(name = "reports_table", schema = "dawa_db", catalog = "dawa_db")
 data class Report(
         @Id
         @Column(name = "id")

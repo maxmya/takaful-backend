@@ -4,7 +4,7 @@ import java.sql.Timestamp
 import javax.persistence.*
 
 @Entity
-@Table(name = "notifications_table", schema = "public", catalog = "takaful-db")
+@Table(name = "notifications_table", schema = "dawa_db", catalog = "dawa_db")
 data class Notification(
         @Id
         @Column(name = "id")

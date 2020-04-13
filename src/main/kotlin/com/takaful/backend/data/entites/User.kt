@@ -4,7 +4,7 @@ import javax.persistence.*
 
 
 @Entity
-@Table(name = "user_table", schema = "public", catalog = "takaful-db")
+@Table(name = "user_table", schema = "dawa_db", catalog = "dawa_db")
 data class User(
         @Id
         @Column(name = "id")
