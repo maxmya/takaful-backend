@@ -3,8 +3,10 @@ package com.takaful.backend.service.implementation
 import com.takaful.backend.controllers.*
 import com.takaful.backend.data.entites.User
 import com.takaful.backend.data.repos.UserRepository
-import com.takaful.backend.data.to.*
+import com.takaful.backend.data.to.ConfirmationClass
+import com.takaful.backend.data.to.UserProfileResponse
 import com.takaful.backend.security.JwtProvider
+import com.takaful.backend.service.freamwork.FilesStorageService
 import com.takaful.backend.service.freamwork.MedicationsService
 import com.takaful.backend.service.freamwork.UserService
 import org.hibernate.service.spi.ServiceException
@@ -14,13 +16,20 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import org.springframework.web.multipart.MultipartFile
+import sun.security.krb5.Confounder.bytes
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
 
 @Service
 class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
                                              val medicationsService: MedicationsService,
                                              val passwordEncoder: PasswordEncoder,
                                              val authenticationManager: AuthenticationManager,
-                                             val jwtProvider: JwtProvider) : UserService {
+                                             val jwtProvider: JwtProvider,
+                                             val filesStorageService: FilesStorageService) : UserService {
 
     override fun registerUser(userRegisterRequest: UserRegisterRequest)
             : UserRegisterResponse {
@@ -75,44 +84,52 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
 
             val userData = userRepository.findUserByUsername(userTokenRequest.username)
 
-            val listOfMedications = mutableListOf<MedicationsDTO>()
-            val listOfReports = mutableListOf<ReportDTO>()
-            val listOfPreservations = mutableListOf<PreservationsDTO>()
-            val listOfNotifications = mutableListOf<NotificationDTO>()
-            val listOfSuggestions = mutableListOf<SuggestionsDTO>()
-
-            for (medicine in userData.medications) {
-                listOfMedications.add(medicationsService.convertMedicationEntityToDTO(medicine))
-            }
-
-            for (report in userData.reports) {
-                listOfReports.add(ReportDTO(report.id, report.payload, report.timestamp))
-            }
-
-            for (notification in userData.notifications) {
-                listOfNotifications.add(NotificationDTO(notification.id, notification.title, notification.body, notification.timestamp))
-            }
-
-            for (suggestion in userData.suggestions) {
-                listOfSuggestions.add(SuggestionsDTO(suggestion.id, suggestion.type, suggestion.timestamp, suggestion.title, suggestion.body))
-            }
-
             UserProfileResponse(
                     userData.id,
                     userData.phone,
                     userData.fullName,
                     userData.pictureUrl,
-                    token,
-                    listOfMedications,
-                    listOfReports,
-                    listOfSuggestions,
-                    listOfNotifications,
-                    listOfPreservations)
+                    token)
 
         } catch (ex: Exception) {
             throw ServiceException("cannot get user profile")
         }
     }
 
+    override fun changeUserProfile(token:String,changeProfile: ChangeProfileRequest,file: MultipartFile): ConfirmationClass {
 
+        return try {
+            val username = jwtProvider.getUserNameFromJwtToken(token)
+            if(changeProfile.fullName=="" || changeProfile.phone=="" || changeProfile.userName==""){
+                return ConfirmationClass(false,"user data  is Empty")
+            }
+            if(username == ""){
+                return ConfirmationClass(false,"UserName is Empty")
+            }
+            if (userRepository.existsByUsername(changeProfile.userName)) {
+                return ConfirmationClass(false, "user ${changeProfile.userName} is already taken")
+            }else {
+                val userData = userRepository.findUserByUsername(username)
+                var imgUrl: String=changeProfile.pictureUrl;
+                if(!file.isEmpty){
+                    imgUrl= filesStorageService.save(file)
+                }
+                val user = User(
+                        id = userData.id,
+                        username = changeProfile.userName,
+                        password = userData.password,
+                        phone = changeProfile.phone,
+                        fullName = changeProfile.fullName,
+                        pictureUrl = imgUrl)
+                userRepository.save(user)
+
+                ConfirmationClass(true, "User profile changed Successfully")
+
+            }
+
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            ConfirmationClass(false,"error")
+        }
+    }
 }
