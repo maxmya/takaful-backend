@@ -8,23 +8,29 @@ import com.takaful.backend.data.to.MedicineUserDTO
 import com.takaful.backend.data.to.PreservationsDTO
 import com.takaful.backend.exceptions.ServiceException
 import com.takaful.backend.service.freamwork.MedicationsService
-import com.takaful.backend.utils.service.freamwork.PaginationCalcService
 import com.takaful.backend.utils.Pageable
+import com.takaful.backend.utils.service.freamwork.PaginationCalcService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.util.*
+import java.util.function.Predicate
+import java.util.stream.Collectors
 
 @Service
 class MedicationsServiceImpl @Autowired constructor(val medicationRepository: MedicationRepository,
                                                     val pagination: PaginationCalcService) : MedicationsService {
 
 
-    override fun getAllMedications(page: Int, size: Int): Pageable<*> {
+    override fun getAllMedications(page: Int, size: Int,query:String): Pageable<*> {
         return try {
-            val medications = medicationRepository.findAll()
-
+            var medications = medicationRepository.findAll()
+            if(query!="") {
+                medications = searchMedications(medications, query);
+            }
             val listOfMedicationsDTOs = mutableListOf<MedicationsDTO>()
 
             for (medicine in medications) {
+
                 listOfMedicationsDTOs.add(convertMedicationEntityToDTO(medicine))
             }
             pagination.getListAfterPaging(listOfMedicationsDTOs, page, size)
@@ -32,7 +38,12 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
             throw ServiceException("cannot get all medications")
         }
     }
+    private  fun searchMedications(medications: List<Medication>,query: String):List<Medication>{
+        return medications.stream()
+                .filter { medicine: Medication -> medicine.name.toLowerCase().contains(query.toLowerCase()) }
+                .collect(Collectors.toCollection<Any, List<Medication>> { ArrayList() })
 
+    }
     override fun convertMedicationEntityToDTO(medicine: Medication): MedicationsDTO {
 
         val user = MedicineUserDTO(
