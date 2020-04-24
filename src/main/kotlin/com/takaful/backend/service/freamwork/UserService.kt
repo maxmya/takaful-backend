@@ -2,14 +2,14 @@ package com.takaful.backend.service.freamwork
 
 import com.takaful.backend.controllers.*
 import com.takaful.backend.data.to.ConfirmationClass
+import com.takaful.backend.data.to.ResponseWrapper
 import com.takaful.backend.data.to.UserProfileResponse
 import org.springframework.web.multipart.MultipartFile
 
 interface UserService {
-    fun registerUser(userRegisterRequest: UserRegisterRequest): UserRegisterResponse
-    fun authenticateUser(userTokenRequest: UserTokenRequest): TokenResponse
-    fun getUserProfile(userTokenRequest: UserTokenRequest): UserProfileResponse
-    fun changeUserProfile(token:String,changeProfile: ChangeProfileRequest,file: MultipartFile): ConfirmationClass ;
-
-    }
+    fun registerUser(userRegisterRequest: UserRegisterRequest): ResponseWrapper
+    fun authenticateUser(userTokenRequest: UserTokenRequest): ResponseWrapper
+    fun getUserProfile(userTokenRequest: UserTokenRequest): ResponseWrapper
+    fun changeUserProfile(changeProfile: ChangeProfileRequest, file: MultipartFile): ResponseWrapper
+}
 

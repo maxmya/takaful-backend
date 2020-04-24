@@ -14,25 +14,25 @@ import org.springframework.web.multipart.MultipartFile
 class SecurityController @Autowired constructor(val userService: UserService) {
 
     @PostMapping("/auth/register")
-    fun registerUser(@RequestBody userRegisterRequest: UserRegisterRequest): ResponseEntity<UserRegisterResponse> {
+    fun registerUser(@RequestBody userRegisterRequest: UserRegisterRequest): ResponseEntity<ResponseWrapper> {
         return ResponseEntity.ok(userService.registerUser(userRegisterRequest))
     }
 
     @PostMapping("/auth/token")
-    fun authenticateUser(@RequestBody tokenRequest: UserTokenRequest): ResponseEntity<TokenResponse> {
+    fun authenticateUser(@RequestBody tokenRequest: UserTokenRequest): ResponseEntity<ResponseWrapper> {
         return ResponseEntity.ok(userService.authenticateUser(tokenRequest))
     }
 
     @PostMapping("/auth/login")
-    fun getUser(@RequestBody tokenRequest: UserTokenRequest): ResponseEntity<UserProfileResponse> {
+    fun getUser(@RequestBody tokenRequest: UserTokenRequest): ResponseEntity<ResponseWrapper> {
         return ResponseEntity.ok(userService.getUserProfile(tokenRequest))
     }
+
     @PutMapping("/auth/user")
-    fun changeUserProfile(@RequestHeader ("Authorization")  tokenAuth:String,
-                          @RequestPart(name = "body") changeProfileRequest: ChangeProfileRequest,
-                          @RequestPart(name = "file") file:MultipartFile): ResponseEntity<ConfirmationClass> {
-        val token=tokenAuth.replace("Bearer ", "")
-        return ResponseEntity.ok(userService.changeUserProfile(token,changeProfileRequest,file))
+    fun changeUserProfile(
+            @RequestPart(name = "file") file: MultipartFile,
+            @RequestPart(name = "body") changeProfileRequest: ChangeProfileRequest): ResponseEntity<ResponseWrapper> {
+        return ResponseEntity.ok(userService.changeUserProfile(changeProfileRequest, file))
     }
 
 }
@@ -49,10 +49,6 @@ data class UserRegisterRequest(
         val pictureUrl: String
 )
 
-data class UserRegisterResponse(
-        val success: Boolean,
-        val message: String
-)
 
 data class UserTokenRequest(
         val username: String,
@@ -60,13 +56,11 @@ data class UserTokenRequest(
 )
 
 data class TokenResponse(
-        val success: Boolean,
         val jwtToken: String
 )
-data class ChangeProfileRequest(
-        val phone: String,
-        val fullName: String,
-        val pictureUrl: String,
-        val userName: String
 
+data class ChangeProfileRequest(
+        val fullName: String,
+        val oldUsername: String,
+        val newUsername: String
 )

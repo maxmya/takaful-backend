@@ -1,15 +1,15 @@
 package com.takaful.backend.service.implementation
 
-import com.takaful.backend.controllers.*
+import com.takaful.backend.controllers.ChangeProfileRequest
+import com.takaful.backend.controllers.UserRegisterRequest
+import com.takaful.backend.controllers.UserTokenRequest
 import com.takaful.backend.data.entites.User
 import com.takaful.backend.data.repos.UserRepository
-import com.takaful.backend.data.to.ConfirmationClass
+import com.takaful.backend.data.to.ResponseWrapper
 import com.takaful.backend.data.to.UserProfileResponse
 import com.takaful.backend.security.JwtProvider
 import com.takaful.backend.service.freamwork.FilesStorageService
-import com.takaful.backend.service.freamwork.MedicationsService
 import com.takaful.backend.service.freamwork.UserService
-import org.hibernate.service.spi.ServiceException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
@@ -17,21 +17,24 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 
 
 @Service
 class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
-                                             val medicationsService: MedicationsService,
                                              val passwordEncoder: PasswordEncoder,
                                              val authenticationManager: AuthenticationManager,
                                              val jwtProvider: JwtProvider,
                                              val filesStorageService: FilesStorageService) : UserService {
 
+
     override fun registerUser(userRegisterRequest: UserRegisterRequest)
-            : UserRegisterResponse {
+            : ResponseWrapper {
 
         if (userRepository.existsByUsername(userRegisterRequest.username)) {
-            return UserRegisterResponse(false, "user ${userRegisterRequest.username} is already taken")
+            return ResponseWrapper(false,
+                    "user ${userRegisterRequest.username} is already taken"
+                    , null)
         }
 
         return try {
@@ -44,33 +47,31 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
 
             userRepository.save(user)
 
-            UserRegisterResponse(true, "user ${user.username} registered successful")
+            ResponseWrapper(true, "user ${user.username} registered successful", null)
         } catch (e: Exception) {
-            UserRegisterResponse(false, "an error has occurred" + e.message)
+            ResponseWrapper(false, "an error has occurred" + e.message, null)
         }
     }
 
 
     // notice that if return comes after control statements
     // like (try-if-when-switch) the last line object will be returned
-    override fun authenticateUser(userTokenRequest: UserTokenRequest): TokenResponse {
+    override fun authenticateUser(userTokenRequest: UserTokenRequest): ResponseWrapper {
         return try {
             val authentication = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken(
                             userTokenRequest.username,
                             userTokenRequest.password))
             SecurityContextHolder.getContext().authentication = authentication
-            TokenResponse(true, jwtProvider.generateJwtToken(authentication))
+            ResponseWrapper(true, "", jwtProvider.generateJwtToken(authentication))
         } catch (ex: Exception) {
-            TokenResponse(false, "error")
+            ResponseWrapper(false, "error", null)
         }
     }
 
 
-    override fun getUserProfile(userTokenRequest: UserTokenRequest): UserProfileResponse {
-
+    override fun getUserProfile(userTokenRequest: UserTokenRequest): ResponseWrapper {
         return try {
-
             val authentication = authenticationManager.authenticate(
                     UsernamePasswordAuthenticationToken(
                             userTokenRequest.username,
@@ -80,52 +81,58 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
 
             val userData = userRepository.findUserByUsername(userTokenRequest.username)
 
-            UserProfileResponse(
+            val profile = UserProfileResponse(
                     userData.id,
                     userData.phone,
                     userData.fullName,
                     userData.pictureUrl,
                     token)
 
+            ResponseWrapper(true, "user loaded", profile)
         } catch (ex: Exception) {
-            throw ServiceException("cannot get user profile")
+            if (ex.message == null) {
+                ResponseWrapper(false, "cannot get profile for user", null)
+            } else {
+                ResponseWrapper(false, ex.message!!, null)
+            }
         }
     }
 
-    override fun changeUserProfile(token:String,changeProfile: ChangeProfileRequest,file: MultipartFile): ConfirmationClass {
+    override fun changeUserProfile(changeProfile: ChangeProfileRequest, file: MultipartFile): ResponseWrapper {
 
         return try {
-            val username = jwtProvider.getUserNameFromJwtToken(token)
-            if(changeProfile.fullName=="" || changeProfile.phone=="" || changeProfile.userName==""){
-                return ConfirmationClass(false,"user data  is Empty")
-            }
-            if(username == ""){
-                return ConfirmationClass(false,"UserName is Empty")
-            }
-            if (userRepository.existsByUsername(changeProfile.userName)) {
-                return ConfirmationClass(false, "user ${changeProfile.userName} is already taken")
-            }else {
-                val userData = userRepository.findUserByUsername(username)
-                var imgUrl: String=changeProfile.pictureUrl;
-                if(!file.isEmpty){
-                    imgUrl= filesStorageService.save(file)
-                }
-                val user = User(
-                        id = userData.id,
-                        username = changeProfile.userName,
-                        password = userData.password,
-                        phone = changeProfile.phone,
-                        fullName = changeProfile.fullName,
-                        pictureUrl = imgUrl)
-                userRepository.save(user)
 
-                ConfirmationClass(true, "User profile changed Successfully")
-
+            if (changeProfile.oldUsername.isEmpty().or(changeProfile.oldUsername.isBlank())) {
+                return ResponseWrapper(false, "invalid profile data", null)
             }
 
+            if ((changeProfile.oldUsername == changeProfile.newUsername).not()) {
+                return ResponseWrapper(false, "changing username is not supported now", null)
+            }
+
+            val userData = userRepository.findUserByUsername(changeProfile.oldUsername)
+            val imgUrl = filesStorageService.storeFile(file)
+
+            val fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/storage/downloadFile/")
+                    .path(imgUrl)
+                    .toUriString()
+
+            val user = User(
+                    id = userData.id,
+                    username = changeProfile.oldUsername,
+                    password = userData.password,
+                    phone = userData.phone,
+                    fullName = changeProfile.fullName,
+                    pictureUrl = fileDownloadUri)
+
+            userRepository.save(user)
+
+            ResponseWrapper(true, "User profile changed Successfully", user)
+            
         } catch (ex: Exception) {
             ex.printStackTrace()
-            ConfirmationClass(false,"error")
+            ResponseWrapper(false, "error", null)
         }
     }
 }

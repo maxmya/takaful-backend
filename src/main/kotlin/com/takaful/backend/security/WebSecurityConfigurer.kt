@@ -57,6 +57,7 @@ class WebSecurityConfigurer : WebSecurityConfigurerAdapter() {
     override fun configure(http: HttpSecurity) {
         http.cors().and().csrf().disable().authorizeRequests()
                 .antMatchers("/user/auth/**").permitAll()
+                .antMatchers("/storage/downloadFile/**").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()

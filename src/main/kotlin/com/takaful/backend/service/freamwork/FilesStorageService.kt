@@ -2,13 +2,10 @@ package com.takaful.backend.service.freamwork
 
 import org.springframework.core.io.Resource
 import org.springframework.web.multipart.MultipartFile
-import java.nio.file.Path
-import java.util.stream.Stream
+import java.io.InputStream
 
 interface FilesStorageService {
-    fun init()
-    fun save(file: MultipartFile?):String
-    fun load(filename: String?): Resource?
-    fun deleteAll()
-    fun loadAll(): Stream<Path?>?
+    fun storeFile(file: MultipartFile): String
+    fun storeFile(file: InputStream, filename: String): String
+    fun loadFileAsResource(filePath: String): Resource
 }

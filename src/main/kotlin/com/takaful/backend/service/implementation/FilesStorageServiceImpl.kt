@@ -1,71 +1,82 @@
 package com.takaful.backend.service.implementation
 
+import com.takaful.backend.exceptions.files.FileStorageException
+import com.takaful.backend.exceptions.files.MyFileNotFoundException
 import com.takaful.backend.service.freamwork.FilesStorageService
+import com.takaful.backend.utils.FileStorageProperties
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.io.Resource
 import org.springframework.core.io.UrlResource
 import org.springframework.stereotype.Service
-import org.springframework.util.FileSystemUtils
 import org.springframework.util.StringUtils
 import org.springframework.web.multipart.MultipartFile
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 import java.io.IOException
+import java.io.InputStream
 import java.net.MalformedURLException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
-import java.util.stream.Stream
-import javax.annotation.PostConstruct
 
 @Service
-class FilesStorageServiceImpl : FilesStorageService {
-    private val root = Paths.get("uploads")
-    @PostConstruct
-    override fun init() {
+class FilesStorageServiceImpl @Autowired constructor(fileStorageProperties: FileStorageProperties) : FilesStorageService {
+
+    private final val fileStorageLocation: Path = Paths.get(fileStorageProperties.directory)
+            .toAbsolutePath().normalize()
+
+    init {
         try {
-            if (Files.notExists(root)) Files.createDirectory(root)
-        } catch (e: IOException) {
-            throw RuntimeException("Could not initialize folder for upload!")
+            Files.createDirectories(fileStorageLocation)
+        } catch (ex: Exception) {
+            throw FileStorageException("Could not create the directory where the uploaded files will be stored.", ex)
         }
     }
-// saves and return file path
-    override fun save(file: MultipartFile?): String {
-        val fileName = StringUtils.cleanPath(file?.originalFilename!!)
 
-        try {
-            Files.copy(file.inputStream, this.root.resolve(file.originalFilename), StandardCopyOption.REPLACE_EXISTING)
-        } catch (e: Exception) {
-            throw RuntimeException("Could not store the file. Error: " + e.message)
-        }
-        return ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/files/")
-                .path(fileName)
-                .toUriString()
-    }
 
-    override fun load(filename: String?): Resource? {
+    override fun storeFile(file: MultipartFile): String {
+        // Normalize file name
+        val fileName = StringUtils.cleanPath(file.originalFilename.toString())
         return try {
-            val file = root.resolve(filename)
-            val resource: Resource = UrlResource(file.toUri())
-            if (resource.exists() || resource.isReadable) {
+            // Check if the file's name contains invalid characters
+            if (fileName.contains("..")) {
+                throw FileStorageException("Sorry! Filename contains invalid path sequence $fileName")
+            }
+            // Copy file to the target location (Replacing existing file with the same name)
+            val targetLocation = fileStorageLocation.resolve(fileName)
+            Files.copy(file.inputStream, targetLocation, StandardCopyOption.REPLACE_EXISTING)
+            fileName
+        } catch (ex: IOException) {
+            throw FileStorageException("Could not store file $fileName. Please try again!", ex)
+        }
+    }
+
+
+    override fun storeFile(file: InputStream, filename: String): String {
+        return try {
+            // Check if the file's name contains invalid characters
+            if (filename.contains("..")) {
+                throw FileStorageException("Sorry! Filename contains invalid path sequence $filename")
+            }
+            // Copy file to the target location (Replacing existing file with the same name)
+            val targetLocation = fileStorageLocation.resolve(filename)
+            Files.copy(file, targetLocation, StandardCopyOption.REPLACE_EXISTING)
+            filename
+        } catch (ex: IOException) {
+            throw FileStorageException("Could not store file $filename. Please try again!", ex)
+        }
+    }
+
+    override fun loadFileAsResource(filePath: String): Resource {
+        return try {
+            val filePath = fileStorageLocation.resolve(filePath).normalize()
+            val resource: Resource = UrlResource(filePath.toUri())
+            if (resource.exists()) {
                 resource
             } else {
-                throw RuntimeException("Could not read the file!")
+                throw MyFileNotFoundException("File not found $filePath")
             }
-        } catch (e: MalformedURLException) {
-            throw RuntimeException("Error: " + e.message)
-        }
-    }
-
-    override fun deleteAll() {
-        FileSystemUtils.deleteRecursively(root.toFile())
-    }
-
-    override fun loadAll(): Stream<Path?>? {
-        return try {
-            Files.walk(this.root, 1).filter { path: Path -> path != this.root }.map { other: Path? -> this.root.relativize(other) }
-        } catch (e: IOException) {
-            throw RuntimeException("Could not load the files!")
+        } catch (ex: MalformedURLException) {
+            throw MyFileNotFoundException("File not found $filePath", ex)
         }
     }
 }

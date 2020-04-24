@@ -6,5 +6,4 @@ data class UserProfileResponse(
         val fullName: String,
         val pictureUrl: String,
         val token: String
-
 )
