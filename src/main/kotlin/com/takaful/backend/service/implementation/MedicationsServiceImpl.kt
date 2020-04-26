@@ -11,6 +11,7 @@ import com.takaful.backend.service.freamwork.MedicationsService
 import com.takaful.backend.utils.Pageable
 import com.takaful.backend.utils.service.freamwork.PaginationCalcService
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import java.util.*
 import java.util.function.Predicate
@@ -37,6 +38,26 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
         } catch (ex: Exception) {
             ex.printStackTrace()
             throw ServiceException("cannot get all medications")
+        }
+    }
+    override fun getMedicationsDetails(id: Int): MedicationsDTO {
+        return try {
+            if(id!=0) {
+                val medicine = medicationRepository.findByIdOrNull(id)
+                if (medicine == null) {
+                    throw ServiceException("invalid Id")
+                }else {
+                    convertMedicationEntityToDTO(medicine)
+                }
+
+            }else{
+                throw ServiceException("invalid Id")
+
+            }
+
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            throw ex
         }
     }
     private  fun searchMedications(medications: List<Medication>,query: String):List<Medication>{

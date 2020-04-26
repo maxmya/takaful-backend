@@ -18,4 +18,9 @@ class MedicationsController @Autowired constructor(val medicationsService: Medic
                       @RequestParam(value = "size", defaultValue = "20", required = false)  size:String): ResponseEntity<Pageable<MedicationsDTO>> {
         return ResponseEntity.ok(medicationsService.getAllMedications(page =page.toInt() ,size = size.toInt(),query = query))
     }
+
+    @PostMapping("/auth/medications/{id}")
+    fun registerUser( @PathVariable(value = "id")  id:Int) : ResponseEntity<MedicationsDTO> {
+        return ResponseEntity.ok(medicationsService.getMedicationsDetails(id))
+    }
 }
