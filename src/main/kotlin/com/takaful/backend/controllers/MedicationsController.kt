@@ -1,5 +1,6 @@
 package com.takaful.backend.controllers
 
+import com.takaful.backend.data.to.MedicationsDTO
 import com.takaful.backend.service.freamwork.MedicationsService
 import com.takaful.backend.utils.Pageable
 import org.springframework.beans.factory.annotation.Autowired
@@ -14,7 +15,7 @@ class MedicationsController @Autowired constructor(val medicationsService: Medic
     @GetMapping("/auth/medications")
     fun registerUser( @RequestParam(value = "q",  defaultValue = "",required = false)  query:String,
                       @RequestParam(value = "page", defaultValue = "1", required = false)  page:String,
-                      @RequestParam(value = "size", defaultValue = "20", required = false)  size:String): ResponseEntity<Pageable<*>> {
+                      @RequestParam(value = "size", defaultValue = "20", required = false)  size:String): ResponseEntity<Pageable<MedicationsDTO>> {
         return ResponseEntity.ok(medicationsService.getAllMedications(page =page.toInt() ,size = size.toInt(),query = query))
     }
 }

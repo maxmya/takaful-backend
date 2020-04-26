@@ -21,7 +21,7 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
                                                     val pagination: PaginationCalcService) : MedicationsService {
 
 
-    override fun getAllMedications(page: Int, size: Int,query:String): Pageable<*> {
+    override fun getAllMedications(page: Int, size: Int,query:String): Pageable<MedicationsDTO> {
         return try {
             var medications = medicationRepository.findAll()
             if(query!="") {
@@ -33,7 +33,7 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
 
                 listOfMedicationsDTOs.add(convertMedicationEntityToDTO(medicine))
             }
-            pagination.getListAfterPaging(listOfMedicationsDTOs, page, size)
+            pagination.getListAfterPaging(listOfMedicationsDTOs, page, size) as Pageable<MedicationsDTO>
         } catch (ex: Exception) {
             ex.printStackTrace()
             throw ServiceException("cannot get all medications")

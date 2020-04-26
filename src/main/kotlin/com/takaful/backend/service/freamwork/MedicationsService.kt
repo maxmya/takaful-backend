@@ -5,6 +5,6 @@ import com.takaful.backend.data.to.MedicationsDTO
 import com.takaful.backend.utils.Pageable
 
 interface MedicationsService {
-    fun getAllMedications(page: Int, size: Int,query:String): Pageable<*>
+    fun getAllMedications(page: Int, size: Int,query:String): Pageable<MedicationsDTO>
     fun convertMedicationEntityToDTO(medicine: Medication): MedicationsDTO
 }
