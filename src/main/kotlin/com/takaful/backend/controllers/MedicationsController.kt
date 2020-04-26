@@ -19,7 +19,7 @@ class MedicationsController @Autowired constructor(val medicationsService: Medic
         return ResponseEntity.ok(medicationsService.getAllMedications(page =page.toInt() ,size = size.toInt(),query = query))
     }
 
-    @PostMapping("/auth/medications/{id}")
+    @GetMapping("/auth/medications/{id}")
     fun registerUser( @PathVariable(value = "id")  id:Int) : ResponseEntity<MedicationsDTO> {
         return ResponseEntity.ok(medicationsService.getMedicationsDetails(id))
     }

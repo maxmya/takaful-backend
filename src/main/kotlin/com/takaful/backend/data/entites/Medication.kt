@@ -18,10 +18,10 @@ data class Medication(
         @Column(name = "address_title")
         val addressTitle: String,
         @ManyToOne
-        @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+        @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = true)
         val user: User?,
         @ManyToOne
-        @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = false)
+        @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = true)
         val category: Category?,
         @OneToOne
         @JoinColumn(name = "preservation_id", referencedColumnName = "id", nullable = true)
