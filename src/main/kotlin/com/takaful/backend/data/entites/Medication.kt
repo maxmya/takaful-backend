@@ -19,11 +19,11 @@ data class Medication(
         val addressTitle: String,
         @ManyToOne
         @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
-        val user: User,
+        val user: User?,
         @ManyToOne
         @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = false)
-        val category: Category,
+        val category: Category?,
         @OneToOne
         @JoinColumn(name = "preservation_id", referencedColumnName = "id", nullable = true)
-        val preservation: Preservation
+        val preservation: Preservation?
 )

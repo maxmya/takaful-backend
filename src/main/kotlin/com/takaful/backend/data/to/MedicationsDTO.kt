@@ -7,7 +7,7 @@ data class MedicationsDTO(
         val lat: Double,
         val imageUrl: String,
         val addressTitle: String,
-        val userDTO: MedicineUserDTO,
-        val categoryDTO: MedicineCategoryDTO,
-        val preserver: PreservationsDTO
+        val userDTO: MedicineUserDTO?,
+        val categoryDTO: MedicineCategoryDTO?,
+        val preserver: PreservationsDTO?
 )

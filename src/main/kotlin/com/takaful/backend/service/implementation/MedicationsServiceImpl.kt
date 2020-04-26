@@ -35,6 +35,7 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
             }
             pagination.getListAfterPaging(listOfMedicationsDTOs, page, size)
         } catch (ex: Exception) {
+            ex.printStackTrace()
             throw ServiceException("cannot get all medications")
         }
     }
@@ -45,23 +46,29 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
 
     }
     override fun convertMedicationEntityToDTO(medicine: Medication): MedicationsDTO {
+        var user:MedicineUserDTO?=null
+        var category : MedicineCategoryDTO?=null
+        var preserver : PreservationsDTO?=null
 
-        val user = MedicineUserDTO(
-                medicine.user.id,
-                medicine.user.username,
-                medicine.user.phone,
-                medicine.user.fullName,
-                medicine.user.pictureUrl)
-
-        val category = MedicineCategoryDTO(
-                medicine.category.id,
-                medicine.category.name,
-                medicine.category.imageUrl)
-
-        val preserver = PreservationsDTO(
-                medicine.preservation.id,
-                medicine.preservation.timestamp)
-
+        if(medicine.user!=null) {
+            user = MedicineUserDTO(
+                    medicine.user.id,
+                    medicine.user.username,
+                    medicine.user.phone,
+                    medicine.user.fullName,
+                    medicine.user.pictureUrl)
+        }
+        if(medicine.category!=null) {
+            category = MedicineCategoryDTO(
+                    medicine.category.id,
+                    medicine.category.name,
+                    medicine.category.imageUrl)
+        }
+        if(medicine.preservation!=null) {
+             preserver = PreservationsDTO(
+                    medicine.preservation.id,
+                    medicine.preservation.timestamp)
+        }
         return MedicationsDTO(
                 medicine.id,
                 medicine.name,
