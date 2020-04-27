@@ -11,6 +11,7 @@ import com.takaful.backend.service.freamwork.MedicationsService
 import com.takaful.backend.utils.Pageable
 import com.takaful.backend.utils.service.freamwork.PaginationCalcService
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import java.util.*
 import java.util.function.Predicate
@@ -21,7 +22,7 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
                                                     val pagination: PaginationCalcService) : MedicationsService {
 
 
-    override fun getAllMedications(page: Int, size: Int,query:String): Pageable<*> {
+    override fun getAllMedications(page: Int, size: Int,query:String): Pageable<MedicationsDTO> {
         return try {
             var medications = medicationRepository.findAll()
             if(query!="") {
@@ -33,9 +34,30 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
 
                 listOfMedicationsDTOs.add(convertMedicationEntityToDTO(medicine))
             }
-            pagination.getListAfterPaging(listOfMedicationsDTOs, page, size)
+            pagination.getListAfterPaging(listOfMedicationsDTOs, page, size) as Pageable<MedicationsDTO>
         } catch (ex: Exception) {
+            ex.printStackTrace()
             throw ServiceException("cannot get all medications")
+        }
+    }
+    override fun getMedicationsDetails(id: Int): MedicationsDTO {
+        return try {
+            if(id!=0) {
+                val medicine = medicationRepository.findByIdOrNull(id)
+                if (medicine == null) {
+                    throw ServiceException("invalid Id")
+                }else {
+                    convertMedicationEntityToDTO(medicine)
+                }
+
+            }else{
+                throw ServiceException("invalid Id")
+
+            }
+
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            throw ex
         }
     }
     private  fun searchMedications(medications: List<Medication>,query: String):List<Medication>{
@@ -45,23 +67,29 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
 
     }
     override fun convertMedicationEntityToDTO(medicine: Medication): MedicationsDTO {
+        var user:MedicineUserDTO?=null
+        var category : MedicineCategoryDTO?=null
+        var preserver : PreservationsDTO?=null
 
-        val user = MedicineUserDTO(
-                medicine.user.id,
-                medicine.user.username,
-                medicine.user.phone,
-                medicine.user.fullName,
-                medicine.user.pictureUrl)
-
-        val category = MedicineCategoryDTO(
-                medicine.category.id,
-                medicine.category.name,
-                medicine.category.imageUrl)
-
-        val preserver = PreservationsDTO(
-                medicine.preservation.id,
-                medicine.preservation.timestamp)
-
+        if(medicine.user!=null) {
+            user = MedicineUserDTO(
+                    medicine.user.id,
+                    medicine.user.username,
+                    medicine.user.phone,
+                    medicine.user.fullName,
+                    medicine.user.pictureUrl)
+        }
+        if(medicine.category!=null) {
+            category = MedicineCategoryDTO(
+                    medicine.category.id,
+                    medicine.category.name,
+                    medicine.category.imageUrl)
+        }
+        if(medicine.preservation!=null) {
+             preserver = PreservationsDTO(
+                    medicine.preservation.id,
+                    medicine.preservation.timestamp)
+        }
         return MedicationsDTO(
                 medicine.id,
                 medicine.name,
