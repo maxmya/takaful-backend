@@ -1,16 +1,20 @@
 package com.takaful.backend.controllers
 
 import com.takaful.backend.data.to.MedicationsDTO
+import com.takaful.backend.data.to.ResponseWrapper
 import com.takaful.backend.service.freamwork.MedicationsService
+import com.takaful.backend.utils.HeadersParser
 import com.takaful.backend.utils.Pageable
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpHeaders
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @CrossOrigin(origins = ["*"], allowedHeaders = ["*"])
 @RestController
 @RequestMapping("/user")
-class MedicationsController @Autowired constructor(val medicationsService: MedicationsService) {
+class MedicationsController @Autowired constructor(val medicationsService: MedicationsService,
+                                                   val headersParser: HeadersParser) {
 
     @GetMapping("/auth/medications")
     fun registerUser( @RequestParam(value = "q",  defaultValue = "",required = false)  query:String,
@@ -20,7 +24,13 @@ class MedicationsController @Autowired constructor(val medicationsService: Medic
     }
 
     @GetMapping("/auth/medications/{id}")
-    fun registerUser( @PathVariable(value = "id")  id:Int) : ResponseEntity<MedicationsDTO> {
+    fun getMedicineDetails( @PathVariable(value = "id")  id:Int) : ResponseEntity<MedicationsDTO> {
         return ResponseEntity.ok(medicationsService.getMedicationsDetails(id))
+    }
+    @PostMapping("/auth/medications/{id}")
+    fun medicinePreservation(@RequestHeader(value = "Authorization") headers:HttpHeaders, @PathVariable(value = "id")  id:Int) : ResponseEntity<ResponseWrapper> {
+        val auth= headers.getFirst("Authorization")
+        val token=headersParser.parseToken(auth)
+        return ResponseEntity.ok(medicationsService.medicinePreservation(token,id))
     }
 }
