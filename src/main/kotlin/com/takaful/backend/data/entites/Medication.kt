@@ -18,7 +18,7 @@ data class Medication(
         @Column(name = "address_title")
         val addressTitle: String,
         @ManyToOne
-        @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = true)
+        @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)//must not be null as medicine must be uploaded by user
         val user: User?,
         @ManyToOne
         @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = true)
