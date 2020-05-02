@@ -58,6 +58,7 @@ class WebSecurityConfigurer : WebSecurityConfigurerAdapter() {
         http.cors().and().csrf().disable().authorizeRequests()
                 .antMatchers("/user/auth/**").permitAll()
                 .antMatchers("/storage/downloadFile/**").permitAll()
+                .antMatchers("/medication/**").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()

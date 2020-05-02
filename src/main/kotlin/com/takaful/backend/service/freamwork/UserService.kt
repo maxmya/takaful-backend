@@ -1,9 +1,7 @@
 package com.takaful.backend.service.freamwork
 
 import com.takaful.backend.controllers.*
-import com.takaful.backend.data.to.ConfirmationClass
 import com.takaful.backend.data.to.ResponseWrapper
-import com.takaful.backend.data.to.UserProfileResponse
 import org.springframework.web.multipart.MultipartFile
 
 interface UserService {
