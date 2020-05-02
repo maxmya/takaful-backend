@@ -164,21 +164,24 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
                 } else {
                     val username = jwtProvider.getUserNameFromJwtToken(token)
                     if (username == "") {
-                        ResponseWrapper(false, "unAuthorized User", null)
+                        return ResponseWrapper(false, "unAuthorized User", null)
                     } else {
                         val user = userRepository.findUserByUsername(username)
+                        if(medicine.preservation!=null){
+                            return ResponseWrapper(false, "alreadyPreserved", null)
+                        }
                         val preserver = Preservation(timestamp = Timestamp(System.currentTimeMillis()),
                                 medication = medicine, user = user)
                         preservationRepository.save(preserver)
                         medicine.preservation = preserver
                         medicationRepository.save(medicine)
-                        ResponseWrapper(true, "medicine preserved successfully", null)
+                        return ResponseWrapper(true, "medicine preserved successfully", null)
 
                     }
                 }
 
             } else {
-                ResponseWrapper(false, "invalid medicine Id", null)
+                return ResponseWrapper(false, "invalid medicine Id", null)
             }
 
         } catch (ex: Exception) {
