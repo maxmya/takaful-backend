@@ -1,9 +1,11 @@
 package com.takaful.backend.data.entites
 
+import org.hibernate.annotations.DynamicUpdate
 import javax.persistence.*
 
 
 @Entity
+@DynamicUpdate
 @Table(name = "medication_table", schema = "dawa_db", catalog = "dawa_db")
 data class Medication(
         @Id
@@ -25,5 +27,5 @@ data class Medication(
         val category: Category?,
         @OneToOne
         @JoinColumn(name = "preservation_id", referencedColumnName = "id", nullable = true)
-        val preservation: Preservation?
+        var preservation: Preservation?
 )

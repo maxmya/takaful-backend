@@ -1,11 +1,14 @@
 package com.takaful.backend.service.implementation
 
 import com.takaful.backend.data.entites.Medication
+import com.takaful.backend.data.entites.Preservation
 import com.takaful.backend.data.repos.CategoryRepository
 import com.takaful.backend.data.repos.MedicationRepository
+import com.takaful.backend.data.repos.PreservationRepository
 import com.takaful.backend.data.repos.UserRepository
 import com.takaful.backend.data.to.*
 import com.takaful.backend.exceptions.ServiceException
+import com.takaful.backend.security.JwtProvider
 import com.takaful.backend.service.freamwork.FilesStorageService
 import com.takaful.backend.service.freamwork.MedicationsService
 import com.takaful.backend.utils.Pageable
@@ -15,13 +18,15 @@ import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
+import java.sql.Timestamp
 import java.util.*
-import java.util.function.Predicate
 import java.util.stream.Collectors
 
 @Service
 class MedicationsServiceImpl @Autowired constructor(val medicationRepository: MedicationRepository,
                                                     val userRepository: UserRepository,
+                                                    val preservationRepository: PreservationRepository,
+                                                    val jwtProvider: JwtProvider,
                                                     val categoryRepository: CategoryRepository,
                                                     val filesStorageService: FilesStorageService,
                                                     val pagination: PaginationCalcService) : MedicationsService {
@@ -96,8 +101,8 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
         }
         if (medicine.preservation != null) {
             preserver = PreservationsDTO(
-                    medicine.preservation.id,
-                    medicine.preservation.timestamp)
+                    medicine.preservation!!.id,
+                    medicine.preservation!!.timestamp)
         }
         return MedicationsDTO(
                 medicine.id,
@@ -150,5 +155,38 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
         }
     }
 
+    override fun medicinePreservation(token: String, id: Int): ResponseWrapper {
+        return try {
+            if (id != 0) {
+                val medicine = medicationRepository.findByIdOrNull(id)
+                if (medicine == null) {
+                    ResponseWrapper(false, "invalid medicine Id", null)
+                } else {
+                    val username = jwtProvider.getUserNameFromJwtToken(token)
+                    if (username == "") {
+                        ResponseWrapper(false, "unAuthorized User", null)
+                    } else {
+                        val user = userRepository.findUserByUsername(username)
+                        val preserver = Preservation(timestamp = Timestamp(System.currentTimeMillis()),
+                                medication = medicine, user = user)
+                        preservationRepository.save(preserver)
+                        medicine.preservation = preserver
+                        medicationRepository.save(medicine)
+                        ResponseWrapper(true, "medicine preserved successfully", null)
+
+                    }
+                }
+
+            } else {
+                ResponseWrapper(false, "invalid medicine Id", null)
+            }
+
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            ResponseWrapper(false, ex.message.toString(), null)
+        }
+
+
+    }
 }
 

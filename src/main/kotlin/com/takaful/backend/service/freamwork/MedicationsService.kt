@@ -12,4 +12,5 @@ interface MedicationsService {
     fun convertMedicationEntityToDTO(medicine: Medication): MedicationsDTO
     fun getMedicationsDetails(id: Int): MedicationsDTO
     fun postMedication(medicationCreationForm: MedicationCreationForm, file: MultipartFile): ResponseWrapper
+    fun medicinePreservation(token: String, id: Int): ResponseWrapper
 }
