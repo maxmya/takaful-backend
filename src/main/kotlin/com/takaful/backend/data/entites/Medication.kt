@@ -9,7 +9,7 @@ data class Medication(
         @Id
         @Column(name = "id")
         @GeneratedValue(strategy = GenerationType.IDENTITY)
-        val id: Int,
+        val id: Int = 0,
         val name: String,
         val lang: Double,
         val lat: Double,
