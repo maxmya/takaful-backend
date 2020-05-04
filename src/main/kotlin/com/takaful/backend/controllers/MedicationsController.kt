@@ -37,7 +37,7 @@ class MedicationsController @Autowired constructor(val medicationsService: Medic
         return ResponseEntity.ok(medicationsService.getMedicationsDetails(id))
     }
 
-    @PostMapping("/auth/medications/{id}")
+    @PostMapping("/preserve/{id}")
     fun medicinePreservation(@RequestHeader(value = "Authorization") headers: HttpHeaders,
                              @PathVariable(value = "id") id: Int): ResponseEntity<ResponseWrapper> {
         val auth = headers.getFirst("Authorization")
