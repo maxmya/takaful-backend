@@ -1,5 +1,4 @@
 package com.takaful.backend.service.implementation
-
 import com.takaful.backend.data.entites.Medication
 import com.takaful.backend.data.entites.Preservation
 import com.takaful.backend.data.repos.CategoryRepository
@@ -32,11 +31,11 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
                                                     val pagination: PaginationCalcService) : MedicationsService {
 
 
-    override fun getAllMedications(page: Int, size: Int, query: String): Pageable<MedicationsDTO> {
+    override fun getAllMedications(page: Int, size: Int, query: String,categoryId:Int): Pageable<MedicationsDTO> {
         return try {
             var medications = medicationRepository.findAll()
-            if (query != "") {
-                medications = searchMedications(medications, query);
+            if(query!="" ||categoryId!=0) {
+                medications = searchMedications(medications, query, categoryId);
             }
             val listOfMedicationsDTOs = mutableListOf<MedicationsDTO>()
 
@@ -73,10 +72,10 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
     }
 
 
-    private fun searchMedications(medications: List<Medication>, query: String): List<Medication> {
-        return medications.stream()
-                .filter { medicine: Medication -> medicine.name.toLowerCase().contains(query.toLowerCase()) }
-                .collect(Collectors.toCollection<Any, List<Medication>> { ArrayList() })
+    private fun searchMedications(medications: List<Medication>, query: String,categoryId: Int): List<Medication> {
+        println("inside search")
+        return medications.filter{
+            (if(query == ""){false}else{ it.name.toLowerCase().contains(query,true)})|| (it.category?.id == categoryId )}
 
     }
 

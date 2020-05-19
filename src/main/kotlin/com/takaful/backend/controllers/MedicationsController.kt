@@ -27,9 +27,10 @@ class MedicationsController @Autowired constructor(val medicationsService: Medic
 
     @GetMapping("/list")
     fun listMedications(@RequestParam(value = "q", defaultValue = "", required = false) query: String,
+                        @RequestParam(value = "category", defaultValue = "0", required = false) category: Int,
                         @RequestParam(value = "page", defaultValue = "1", required = false) page: String,
                         @RequestParam(value = "size", defaultValue = "20", required = false) size: String): ResponseEntity<Pageable<MedicationsDTO>> {
-        return ResponseEntity.ok(medicationsService.getAllMedications(page = page.toInt(), size = size.toInt(), query = query))
+        return ResponseEntity.ok(medicationsService.getAllMedications(page = page.toInt(), size = size.toInt(), query = query,categoryId = category))
     }
 
     @GetMapping("/list/{id}")
