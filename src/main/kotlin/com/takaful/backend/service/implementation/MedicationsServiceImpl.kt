@@ -191,5 +191,52 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
 
 
     }
+
+    override fun listUserPreservation(token: String): List<UserPreservationDTO> {
+        return try {
+            val username = jwtProvider.getUserNameFromJwtToken(token)
+            val medications = medicationRepository.findAll()
+            val listOfMedications = mutableListOf<Medication>()
+            val listOfPreservation = mutableListOf<UserPreservationDTO>()
+            println("username: $username")
+
+            for (medicine in medications) {
+                println(" preservation username: "+medicine.preservation?.user?.username)
+
+                if(medicine.preservation?.user?.username ==username) {
+                  listOfMedications.add(medicine)
+              }
+            }
+            for (medicine in listOfMedications) {
+                val userPreservation=UserPreservationDTO(medicine.preservation?.id,convertMedicationEntityToDTO(medicine), medicine.preservation?.timestamp)
+                listOfPreservation.add(userPreservation)
+            }
+            listOfPreservation
+
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            throw ServiceException("cannot get all Preservations")
+        }
+    }
+
+    override fun deletePreservation(token: String, preservationId: Int): ResponseWrapper {
+        return try {
+            val medications = medicationRepository.findAll()
+            for (medicine in medications) {
+                if(medicine.preservation!=null) {
+                    if (medicine.preservation?.id == preservationId) {
+                        medicine.preservation = null
+                        medicationRepository.save(medicine)
+                        break
+                    }
+                }
+            }
+            preservationRepository.deleteById(preservationId)
+            return ResponseWrapper(true, "Preservation  deleted successfully", null)
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            ResponseWrapper(false, ex.message.toString(), null)
+        }
+    }
 }
 
