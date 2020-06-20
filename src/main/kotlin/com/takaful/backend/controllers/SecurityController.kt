@@ -46,7 +46,7 @@ class SecurityController @Autowired constructor(val userService: UserService,
         return ResponseEntity.ok(medicationsService.listUserPreservation(token))
     }
     @PostMapping("/auth/preservation/{id}")
-    fun medicinePreservation(@RequestHeader(value = "Authorization") headers: HttpHeaders,
+    fun deletePreservation(@RequestHeader(value = "Authorization") headers: HttpHeaders,
                              @PathVariable(value = "id") id: Int): ResponseEntity<ResponseWrapper> {
         val auth = headers.getFirst("Authorization")
         val token = headersParser.parseToken(auth)
