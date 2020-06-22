@@ -1,5 +1,8 @@
 package com.takaful.backend.security
 
+import com.google.auth.oauth2.GoogleCredentials
+import com.google.firebase.FirebaseApp
+import com.google.firebase.FirebaseOptions
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -14,6 +17,8 @@ import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import java.io.FileInputStream
+import java.io.IOException
 
 
 @Configuration
@@ -22,6 +27,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
         prePostEnabled = true
 )
 class WebSecurityConfigurer : WebSecurityConfigurerAdapter() {
+
+    @Bean
+    @Throws(IOException::class)
+    fun setupFirebaseApp(): FirebaseApp {
+        val serviceAccount = FileInputStream(System.getProperty("user.home") + "/storage/dawa-key.json")
+        val options: FirebaseOptions = FirebaseOptions.Builder()
+                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .build()
+
+        return FirebaseApp.initializeApp(options)
+    }
 
     @Autowired
     lateinit var userDetailsService: UserDetailsServiceImpl

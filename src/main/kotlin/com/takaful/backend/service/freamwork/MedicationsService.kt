@@ -8,9 +8,12 @@ import com.takaful.backend.utils.Pageable
 import org.springframework.web.multipart.MultipartFile
 
 interface MedicationsService {
-    fun getAllMedications(page: Int, size: Int, query: String,categoryId:Int): Pageable<MedicationsDTO>
+    fun getAllMedications(page: Int, size: Int, query: String, categoryId: Int): Pageable<MedicationsDTO>
     fun convertMedicationEntityToDTO(medicine: Medication): MedicationsDTO
     fun getMedicationsDetails(id: Int): MedicationsDTO
     fun postMedication(medicationCreationForm: MedicationCreationForm, file: MultipartFile): ResponseWrapper
     fun medicinePreservation(token: String, id: Int): ResponseWrapper
+    fun getMyPostedMedications(token: String): ResponseWrapper
+    fun getMyMedicationPreserverInfo(medicationId: Int): ResponseWrapper
+    fun deleteMyPostedMedication(token: String, medicationId: Int): ResponseWrapper
 }

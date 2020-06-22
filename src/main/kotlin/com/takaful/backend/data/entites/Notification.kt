@@ -9,7 +9,7 @@ data class Notification(
         @Id
         @Column(name = "id")
         @GeneratedValue(strategy = GenerationType.IDENTITY)
-        val id: Int,
+        val id: Int = 0,
         val title: String,
         val body: String,
         val timestamp: Timestamp,
@@ -18,5 +18,5 @@ data class Notification(
         val notifiedUser: User,
         @ManyToOne
         @JoinColumn(name = "preservation_id", referencedColumnName = "id", nullable = true)
-        val preservation: Preservation
+        val preservation: Preservation?
 )
