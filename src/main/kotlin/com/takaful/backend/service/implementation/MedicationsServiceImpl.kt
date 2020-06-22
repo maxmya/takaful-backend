@@ -256,8 +256,7 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
     }
 
 
-
-    override fun listUserPreservation(token: String): List<UserPreservationDTO> {
+    override fun listUserPreservation(token: String): ResponseWrapper {
         return try {
             val username = jwtProvider.getUserNameFromJwtToken(token)
             val medications = medicationRepository.findAll()
@@ -266,21 +265,20 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
             println("username: $username")
 
             for (medicine in medications) {
-                println(" preservation username: "+medicine.preservation?.user?.username)
+                println(" preservation username: " + medicine.preservation?.user?.username)
 
-                if(medicine.preservation?.user?.username ==username) {
-                  listOfMedications.add(medicine)
-              }
+                if (medicine.preservation?.user?.username == username) {
+                    listOfMedications.add(medicine)
+                }
             }
             for (medicine in listOfMedications) {
-                val userPreservation=UserPreservationDTO(medicine.preservation?.id,convertMedicationEntityToDTO(medicine), medicine.preservation?.timestamp)
+                val userPreservation = UserPreservationDTO(medicine.preservation?.id, convertMedicationEntityToDTO(medicine), medicine.preservation?.timestamp)
                 listOfPreservation.add(userPreservation)
             }
-            listOfPreservation
-
+            ResponseWrapper(true, "done", listOfPreservation)
         } catch (ex: Exception) {
             ex.printStackTrace()
-            throw ServiceException("cannot get all Preservations")
+            ResponseWrapper(false, "cannot get those", null)
         }
     }
 
@@ -288,7 +286,7 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
         return try {
             val medications = medicationRepository.findAll()
             for (medicine in medications) {
-                if(medicine.preservation!=null) {
+                if (medicine.preservation != null) {
                     if (medicine.preservation?.id == preservationId) {
                         medicine.preservation = null
                         medicationRepository.save(medicine)

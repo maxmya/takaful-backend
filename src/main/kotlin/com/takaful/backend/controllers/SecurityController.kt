@@ -40,7 +40,7 @@ class SecurityController @Autowired constructor(val userService: UserService,
         return ResponseEntity.ok(userService.changeUserProfile(changeProfileRequest, file))
     }
     @GetMapping("/auth/preservation")
-    fun listUserPreservations(@RequestHeader(value = "Authorization") headers: HttpHeaders ): ResponseEntity<List<UserPreservationDTO>> {
+    fun listUserPreservations(@RequestHeader(value = "Authorization") headers: HttpHeaders ): ResponseEntity<ResponseWrapper> {
         val auth = headers.getFirst("Authorization")
         val token = headersParser.parseToken(auth)
         return ResponseEntity.ok(medicationsService.listUserPreservation(token))

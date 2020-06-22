@@ -14,7 +14,7 @@ interface MedicationsService {
     fun getMedicationsDetails(id: Int): MedicationsDTO
     fun postMedication(medicationCreationForm: MedicationCreationForm, file: MultipartFile): ResponseWrapper
     fun medicinePreservation(token: String, id: Int): ResponseWrapper
-    fun listUserPreservation(token: String): List<UserPreservationDTO>
+    fun listUserPreservation(token: String): ResponseWrapper
     fun deletePreservation(token: String,preservationId:Int): ResponseWrapper
 
 
