@@ -37,10 +37,6 @@ class SecurityController @Autowired constructor(val userService: UserService) {
 
 }
 
-// notice Marwa that its ok to write data objects that is used only once in the using file (not class)
-// and yes its imported into the controller but this cycle is called use-case
-// if an object is shared to another use-case we put it into a general package
-// in a separating file
 data class UserRegisterRequest(
         val username: String,
         val password: String,
