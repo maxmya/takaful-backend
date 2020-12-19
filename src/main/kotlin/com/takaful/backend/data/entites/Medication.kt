@@ -1,6 +1,7 @@
 package com.takaful.backend.data.entites
 
 import org.hibernate.annotations.DynamicUpdate
+import java.sql.Timestamp
 import javax.persistence.*
 
 
@@ -19,12 +20,13 @@ data class Medication(
         val imageUrl: String,
         @Column(name = "address_title")
         val addressTitle: String,
+        val timestamp: Timestamp,
         @ManyToOne
         @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)//must not be null as medicine must be uploaded by user
-        val user: User?,
+        val user: User,
         @ManyToOne
         @JoinColumn(name = "category_id", referencedColumnName = "id", nullable = true)
-        val category: Category?,
+        val category: Category,
         @OneToOne
         @JoinColumn(name = "preservation_id", referencedColumnName = "id", nullable = true)
         var preservation: Preservation?

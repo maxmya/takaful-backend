@@ -27,9 +27,10 @@ class MedicationsController @Autowired constructor(val medicationsService: Medic
 
     @GetMapping("/list")
     fun listMedications(@RequestParam(value = "q", defaultValue = "", required = false) query: String,
+                        @RequestParam(value = "category", defaultValue = "0", required = false) category: Int,
                         @RequestParam(value = "page", defaultValue = "1", required = false) page: String,
                         @RequestParam(value = "size", defaultValue = "20", required = false) size: String): ResponseEntity<Pageable<MedicationsDTO>> {
-        return ResponseEntity.ok(medicationsService.getAllMedications(page = page.toInt(), size = size.toInt(), query = query))
+        return ResponseEntity.ok(medicationsService.getAllMedications(page = page.toInt(), size = size.toInt(), query = query, categoryId = category))
     }
 
     @GetMapping("/list/{id}")
@@ -47,9 +48,30 @@ class MedicationsController @Autowired constructor(val medicationsService: Medic
 
 
     @PostMapping("/add")
-    fun addMedication(
-            @RequestPart(name = "file") file: MultipartFile,
-            @RequestPart(name = "body") medicationCreationForm: MedicationCreationForm): ResponseEntity<ResponseWrapper> {
+    fun addMedication(@RequestPart(name = "file") file: MultipartFile,
+                      @RequestPart(name = "body") medicationCreationForm: MedicationCreationForm): ResponseEntity<ResponseWrapper> {
         return ResponseEntity.ok(medicationsService.postMedication(medicationCreationForm, file))
     }
+
+    @GetMapping("/list/mine")
+    fun getMyPostedMedications(@RequestHeader(value = "Authorization") headers: HttpHeaders): ResponseEntity<ResponseWrapper> {
+        val auth = headers.getFirst("Authorization")
+        val token = headersParser.parseToken(auth)
+        return ResponseEntity.ok(medicationsService.getMyPostedMedications(token))
+    }
+
+    @DeleteMapping("/mine/{id}/delete")
+    fun deleteMyMedication(@RequestHeader(value = "Authorization") headers: HttpHeaders,
+                           @PathVariable("id") id: Int): ResponseEntity<ResponseWrapper> {
+        val auth = headers.getFirst("Authorization")
+        val token = headersParser.parseToken(auth)
+        return ResponseEntity.ok(medicationsService.deleteMyPostedMedication(token, id))
+    }
+
+    @GetMapping("/mine/{id}/preserver")
+    fun getPreserverInfo(@PathVariable("id") id: Int): ResponseEntity<ResponseWrapper> {
+        return ResponseEntity.ok(medicationsService.getMyMedicationPreserverInfo(id))
+    }
+
+
 }

@@ -1,5 +1,8 @@
 package com.takaful.backend.service.implementation
 
+import com.google.firebase.FirebaseApp
+import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.Message
 import com.takaful.backend.data.entites.Medication
 import com.takaful.backend.data.entites.Preservation
 import com.takaful.backend.data.repos.CategoryRepository
@@ -9,8 +12,7 @@ import com.takaful.backend.data.repos.UserRepository
 import com.takaful.backend.data.to.*
 import com.takaful.backend.exceptions.ServiceException
 import com.takaful.backend.security.JwtProvider
-import com.takaful.backend.service.freamwork.FilesStorageService
-import com.takaful.backend.service.freamwork.MedicationsService
+import com.takaful.backend.service.freamwork.*
 import com.takaful.backend.utils.Pageable
 import com.takaful.backend.utils.service.freamwork.PaginationCalcService
 import org.springframework.beans.factory.annotation.Autowired
@@ -20,28 +22,29 @@ import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 import java.sql.Timestamp
 import java.util.*
-import java.util.stream.Collectors
+
 
 @Service
 class MedicationsServiceImpl @Autowired constructor(val medicationRepository: MedicationRepository,
                                                     val userRepository: UserRepository,
                                                     val preservationRepository: PreservationRepository,
                                                     val jwtProvider: JwtProvider,
+                                                    val firebaseMessagingService: FirebaseMessagingService,
                                                     val categoryRepository: CategoryRepository,
                                                     val filesStorageService: FilesStorageService,
                                                     val pagination: PaginationCalcService) : MedicationsService {
 
 
-    override fun getAllMedications(page: Int, size: Int, query: String): Pageable<MedicationsDTO> {
+    override fun getAllMedications(page: Int, size: Int, query: String, categoryId: Int): Pageable<MedicationsDTO> {
         return try {
-            var medications = medicationRepository.findAll()
-            if (query != "") {
-                medications = searchMedications(medications, query);
+            var medications = medicationRepository.findAllByOrderByTimestampDesc()
+            if (query != "" || categoryId != 0) {
+                medications = searchMedications(medications, query, categoryId);
             }
             val listOfMedicationsDTOs = mutableListOf<MedicationsDTO>()
 
             for (medicine in medications) {
-
+                if (medicine.preservation != null) continue
                 listOfMedicationsDTOs.add(convertMedicationEntityToDTO(medicine))
             }
             pagination.getListAfterPaging(listOfMedicationsDTOs, page, size) as Pageable<MedicationsDTO>
@@ -73,37 +76,42 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
     }
 
 
-    private fun searchMedications(medications: List<Medication>, query: String): List<Medication> {
-        return medications.stream()
-                .filter { medicine: Medication -> medicine.name.toLowerCase().contains(query.toLowerCase()) }
-                .collect(Collectors.toCollection<Any, List<Medication>> { ArrayList() })
+    private fun searchMedications(medications: List<Medication>, query: String, categoryId: Int): List<Medication> {
+        println("inside search")
+        return medications.filter {
+            (if (query == "") {
+                false
+            } else {
+                it.name.toLowerCase().contains(query, true)
+            }) || (it.category?.id == categoryId)
+        }
 
     }
 
     override fun convertMedicationEntityToDTO(medicine: Medication): MedicationsDTO {
+
         var user: MedicineUserDTO? = null
         var category: MedicineCategoryDTO? = null
         var preserver: PreservationsDTO? = null
 
-        if (medicine.user != null) {
-            user = MedicineUserDTO(
-                    medicine.user.id,
-                    medicine.user.username,
-                    medicine.user.phone,
-                    medicine.user.fullName,
-                    medicine.user.pictureUrl)
-        }
-        if (medicine.category != null) {
-            category = MedicineCategoryDTO(
-                    medicine.category.id,
-                    medicine.category.name,
-                    medicine.category.imageUrl)
-        }
         if (medicine.preservation != null) {
             preserver = PreservationsDTO(
                     medicine.preservation!!.id,
                     medicine.preservation!!.timestamp)
         }
+
+        category = MedicineCategoryDTO(
+                medicine.category.id,
+                medicine.category.name,
+                medicine.category.imageUrl)
+
+        user = MedicineUserDTO(
+                medicine.user.id,
+                medicine.user.username,
+                medicine.user.phone,
+                medicine.user.fullName,
+                medicine.user.pictureUrl)
+
         return MedicationsDTO(
                 medicine.id,
                 medicine.name,
@@ -144,6 +152,7 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
                     user = postingUser,
                     category = medicationCategory,
                     imageUrl = fileDownloadUri,
+                    timestamp = Timestamp(Date().time),
                     preservation = null)
 
             medicationRepository.save(medicine)
@@ -167,7 +176,7 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
                         return ResponseWrapper(false, "unAuthorized User", null)
                     } else {
                         val user = userRepository.findUserByUsername(username)
-                        if(medicine.preservation!=null){
+                        if (medicine.preservation != null) {
                             return ResponseWrapper(false, "alreadyPreserved", null)
                         }
                         val preserver = Preservation(timestamp = Timestamp(System.currentTimeMillis()),
@@ -175,8 +184,13 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
                         preservationRepository.save(preserver)
                         medicine.preservation = preserver
                         medicationRepository.save(medicine)
+                        firebaseMessagingService
+                                .sendNotification(
+                                        medicine.user.id.toString(),
+                                        PRESERVATION_TITLE,
+                                        "تم حجز دوائك بعنوان ${medicine.name} بنجاح ",
+                                        PRESERVATION_CHANNEL)
                         return ResponseWrapper(true, "medicine preserved successfully", null)
-
                     }
                 }
 
@@ -190,6 +204,102 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
         }
 
 
+    }
+
+    override fun getMyPostedMedications(token: String): ResponseWrapper {
+        return try {
+            val username = jwtProvider.getUserNameFromJwtToken(token)
+            val user = userRepository.findUserByUsername(username)
+            val myMedicationList = medicationRepository.findAllByUserOrderByTimestampDesc(user)
+            val myMedicationListDto = mutableListOf<MedicationsDTO>()
+            myMedicationList.forEach { medication ->
+                myMedicationListDto.add(convertMedicationEntityToDTO(medication))
+            }
+            ResponseWrapper(true, "done", myMedicationListDto)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResponseWrapper(false, e.message.toString(), null)
+        }
+    }
+
+    override fun getMyMedicationPreserverInfo(medicationId: Int): ResponseWrapper {
+        return try {
+            val selectedMedication = medicationRepository.getOne(medicationId)
+            val preserverUser = selectedMedication.preservation?.user
+            if (preserverUser != null) {
+                val sentUser = MedicineUserDTO(preserverUser.id,
+                        preserverUser.username,
+                        preserverUser.phone,
+                        preserverUser.fullName,
+                        preserverUser.pictureUrl)
+                ResponseWrapper(true, "done", sentUser)
+            } else throw ServiceException("preserver info not found")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResponseWrapper(false, e.message.toString(), null)
+        }
+    }
+
+    override fun deleteMyPostedMedication(token: String, medicationId: Int): ResponseWrapper {
+        return try {
+            val username = jwtProvider.getUserNameFromJwtToken(token)
+            val medication = medicationRepository.getOne(medicationId)
+            if (medication.user.username != username) {
+                throw ServiceException("you are not the owner of this medication !")
+            }
+            medicationRepository.deleteById(medicationId)
+            ResponseWrapper(true, "done", null)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResponseWrapper(false, e.message.toString(), null)
+        }
+    }
+
+
+    override fun listUserPreservation(token: String): ResponseWrapper {
+        return try {
+            val username = jwtProvider.getUserNameFromJwtToken(token)
+            val medications = medicationRepository.findAll()
+            val listOfMedications = mutableListOf<Medication>()
+            val listOfPreservation = mutableListOf<UserPreservationDTO>()
+            println("username: $username")
+
+            for (medicine in medications) {
+                println(" preservation username: " + medicine.preservation?.user?.username)
+
+                if (medicine.preservation?.user?.username == username) {
+                    listOfMedications.add(medicine)
+                }
+            }
+            for (medicine in listOfMedications) {
+                val userPreservation = UserPreservationDTO(medicine.preservation?.id, convertMedicationEntityToDTO(medicine), medicine.preservation?.timestamp)
+                listOfPreservation.add(userPreservation)
+            }
+            ResponseWrapper(true, "done", listOfPreservation)
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            ResponseWrapper(false, "cannot get those", null)
+        }
+    }
+
+    override fun deletePreservation(token: String, preservationId: Int): ResponseWrapper {
+        return try {
+            val medications = medicationRepository.findAll()
+            for (medicine in medications) {
+                if (medicine.preservation != null) {
+                    if (medicine.preservation?.id == preservationId) {
+                        medicine.preservation = null
+                        medicationRepository.save(medicine)
+                        break
+                    }
+                }
+            }
+            preservationRepository.deleteById(preservationId)
+            return ResponseWrapper(true, "Preservation  deleted successfully", null)
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            ResponseWrapper(false, ex.message.toString(), null)
+        }
     }
 }
 
