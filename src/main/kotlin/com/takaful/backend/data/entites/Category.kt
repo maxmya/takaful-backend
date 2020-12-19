@@ -1,9 +1,11 @@
 package com.takaful.backend.data.entites
 
+import org.hibernate.annotations.DynamicUpdate
 import javax.persistence.*
 
 @Entity
-@Table(name = "categories_table", schema = "public", catalog = "takaful-db")
+@DynamicUpdate
+@Table(name = "categories_table", schema = "dawa_db", catalog = "dawa_db")
 data class Category(
         @Id
         @Column(name = "id")

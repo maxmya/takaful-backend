@@ -43,7 +43,7 @@ class JwtProvider {
         return Jwts.parser()
                 .setSigningKey(jwtSecret)
                 .parseClaimsJws(token)
-                .body.get("username").toString()
+                .body["username"].toString()
     }
 
     fun validateJwtToken(authToken: String): Boolean {

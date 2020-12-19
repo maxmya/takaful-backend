@@ -4,12 +4,12 @@ import java.sql.Timestamp
 import javax.persistence.*
 
 @Entity
-@Table(name = "notifications_table", schema = "public", catalog = "takaful-db")
+@Table(name = "notifications_table", schema = "dawa_db", catalog = "dawa_db")
 data class Notification(
         @Id
         @Column(name = "id")
         @GeneratedValue(strategy = GenerationType.IDENTITY)
-        val id: Int,
+        val id: Int = 0,
         val title: String,
         val body: String,
         val timestamp: Timestamp,
@@ -18,5 +18,5 @@ data class Notification(
         val notifiedUser: User,
         @ManyToOne
         @JoinColumn(name = "preservation_id", referencedColumnName = "id", nullable = true)
-        val preservation: Preservation
+        val preservation: Preservation?
 )
