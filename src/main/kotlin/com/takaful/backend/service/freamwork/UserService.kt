@@ -9,5 +9,7 @@ interface UserService {
     fun authenticateUser(userTokenRequest: UserTokenRequest): ResponseWrapper
     fun getUserProfile(userTokenRequest: UserTokenRequest): ResponseWrapper
     fun changeUserProfile(changeProfile: ChangeProfileRequest, file: MultipartFile): ResponseWrapper
+    fun isUserRegistered(phone: String): ResponseWrapper
+    fun changePassword(phone: String, newPassword: String): ResponseWrapper
 }
 

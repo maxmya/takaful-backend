@@ -21,29 +21,34 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 
 
 @Service
-class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
-                                             val passwordEncoder: PasswordEncoder,
-                                             val authenticationManager: AuthenticationManager,
-                                             val jwtProvider: JwtProvider,
-                                             val filesStorageService: FilesStorageService) : UserService {
+class UserServiceImpl @Autowired constructor(
+    val userRepository: UserRepository,
+    val passwordEncoder: PasswordEncoder,
+    val authenticationManager: AuthenticationManager,
+    val jwtProvider: JwtProvider,
+    val filesStorageService: FilesStorageService
+) : UserService {
 
 
     override fun registerUser(userRegisterRequest: UserRegisterRequest)
             : ResponseWrapper {
 
         if (userRepository.existsByUsername(userRegisterRequest.username)) {
-            return ResponseWrapper(false,
-                    "user ${userRegisterRequest.username} is already taken"
-                    , null)
+            return ResponseWrapper(
+                false,
+                "user ${userRegisterRequest.username} is already taken", null
+            )
         }
 
         return try {
 
-            val user = User(username = userRegisterRequest.username,
-                    password = passwordEncoder.encode(userRegisterRequest.password),
-                    phone = userRegisterRequest.phone,
-                    fullName = userRegisterRequest.fullName,
-                    pictureUrl = userRegisterRequest.pictureUrl)
+            val user = User(
+                username = userRegisterRequest.username,
+                password = passwordEncoder.encode(userRegisterRequest.password),
+                phone = userRegisterRequest.phone,
+                fullName = userRegisterRequest.fullName,
+                pictureUrl = userRegisterRequest.pictureUrl
+            )
 
             userRepository.save(user)
 
@@ -59,9 +64,11 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
     override fun authenticateUser(userTokenRequest: UserTokenRequest): ResponseWrapper {
         return try {
             val authentication = authenticationManager.authenticate(
-                    UsernamePasswordAuthenticationToken(
-                            userTokenRequest.username,
-                            userTokenRequest.password))
+                UsernamePasswordAuthenticationToken(
+                    userTokenRequest.username,
+                    userTokenRequest.password
+                )
+            )
             SecurityContextHolder.getContext().authentication = authentication
             ResponseWrapper(true, "", jwtProvider.generateJwtToken(authentication))
         } catch (ex: Exception) {
@@ -73,20 +80,23 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
     override fun getUserProfile(userTokenRequest: UserTokenRequest): ResponseWrapper {
         return try {
             val authentication = authenticationManager.authenticate(
-                    UsernamePasswordAuthenticationToken(
-                            userTokenRequest.username,
-                            userTokenRequest.password))
+                UsernamePasswordAuthenticationToken(
+                    userTokenRequest.username,
+                    userTokenRequest.password
+                )
+            )
             SecurityContextHolder.getContext().authentication = authentication
             val token = jwtProvider.generateJwtToken(authentication)
 
             val userData = userRepository.findUserByUsername(userTokenRequest.username)
 
             val profile = UserProfileResponse(
-                    userData.id,
-                    userData.phone,
-                    userData.fullName,
-                    userData.pictureUrl,
-                    token)
+                userData.id,
+                userData.phone,
+                userData.fullName,
+                userData.pictureUrl,
+                token
+            )
 
             ResponseWrapper(true, "user loaded", profile)
         } catch (ex: Exception) {
@@ -114,25 +124,65 @@ class UserServiceImpl @Autowired constructor(val userRepository: UserRepository,
             val imgUrl = filesStorageService.storeFile(file)
 
             val fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/storage/downloadFile/")
-                    .path(imgUrl)
-                    .toUriString()
+                .path("/storage/downloadFile/")
+                .path(imgUrl)
+                .toUriString()
 
             val user = User(
-                    id = userData.id,
-                    username = changeProfile.oldUsername,
-                    password = userData.password,
-                    phone = userData.phone,
-                    fullName = changeProfile.fullName,
-                    pictureUrl = fileDownloadUri)
+                id = userData.id,
+                username = changeProfile.oldUsername,
+                password = userData.password,
+                phone = userData.phone,
+                fullName = changeProfile.fullName,
+                pictureUrl = fileDownloadUri
+            )
 
             userRepository.save(user)
 
             ResponseWrapper(true, "User profile changed Successfully", user)
-            
+
         } catch (ex: Exception) {
             ex.printStackTrace()
             ResponseWrapper(false, "error", null)
+        }
+    }
+
+    override fun isUserRegistered(phone: String): ResponseWrapper {
+        return try {
+            val userExisted = userRepository.existsByUsername(phone)
+            ResponseWrapper(true, "done", userExisted)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResponseWrapper(false, "cannot preform action", false)
+        }
+    }
+
+
+    override fun changePassword(phone: String, newPassword: String): ResponseWrapper {
+        return try {
+            val user = userRepository.findUserByUsername(phone)
+
+            val newUserVal = User(
+                username = user.username,
+                password = passwordEncoder.encode(newPassword),
+                phone = phone,
+                pictureUrl = user.pictureUrl,
+                fullName = user.fullName,
+                id = user.id,
+                medications = user.medications,
+                notifications = user.notifications,
+                preservations = user.preservations,
+                reports = user.reports,
+                suggestions = user.suggestions
+            )
+
+            userRepository.save(newUserVal)
+
+            ResponseWrapper(true, "Done", true)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            ResponseWrapper(false, "cannot preform action", false)
         }
     }
 }
