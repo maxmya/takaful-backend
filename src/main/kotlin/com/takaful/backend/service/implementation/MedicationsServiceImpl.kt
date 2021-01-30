@@ -22,37 +22,80 @@ import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 import java.sql.Timestamp
 import java.util.*
+import kotlin.math.*
 
 
 @Service
-class MedicationsServiceImpl @Autowired constructor(val medicationRepository: MedicationRepository,
-                                                    val userRepository: UserRepository,
-                                                    val preservationRepository: PreservationRepository,
-                                                    val jwtProvider: JwtProvider,
-                                                    val firebaseMessagingService: FirebaseMessagingService,
-                                                    val categoryRepository: CategoryRepository,
-                                                    val filesStorageService: FilesStorageService,
-                                                    val pagination: PaginationCalcService) : MedicationsService {
+class MedicationsServiceImpl @Autowired constructor(
+    val medicationRepository: MedicationRepository,
+    val userRepository: UserRepository,
+    val preservationRepository: PreservationRepository,
+    val jwtProvider: JwtProvider,
+    val firebaseMessagingService: FirebaseMessagingService,
+    val categoryRepository: CategoryRepository,
+    val filesStorageService: FilesStorageService,
+    val pagination: PaginationCalcService
+) : MedicationsService {
 
 
-    override fun getAllMedications(page: Int, size: Int, query: String, categoryId: Int): Pageable<MedicationsDTO> {
+    override fun getAllMedications(
+        page: Int,
+        latitude: String, longitude: String,
+        size: Int, query: String, categoryId: Int
+    ): Pageable<MedicationsDTO> {
         return try {
+
             var medications = medicationRepository.findAllByOrderByTimestampDesc()
             if (query != "" || categoryId != 0) {
                 medications = searchMedications(medications, query, categoryId);
             }
-            val listOfMedicationsDTOs = mutableListOf<MedicationsDTO>()
+            var listOfMedicationsDTOs = mutableListOf<MedicationsDTO>()
 
             for (medicine in medications) {
                 if (medicine.preservation != null) continue
                 listOfMedicationsDTOs.add(convertMedicationEntityToDTO(medicine))
             }
+
+            listOfMedicationsDTOs = sortLocations(listOfMedicationsDTOs, latitude.toDouble(), longitude.toDouble())
+
             pagination.getListAfterPaging(listOfMedicationsDTOs, page, size) as Pageable<MedicationsDTO>
+
         } catch (ex: Exception) {
             ex.printStackTrace()
             throw ServiceException("cannot get all medications")
         }
     }
+
+
+    fun sortLocations(
+        locations: MutableList<MedicationsDTO>,
+        myLatitude: Double,
+        myLongitude: Double
+    ): MutableList<MedicationsDTO> {
+        val comp = Comparator<MedicationsDTO> { med, _ ->
+            val distance1 = distance(myLatitude, myLongitude, med.lat, med.lang)
+            val distance2 = distance(myLatitude, myLongitude, med.lat, med.lang)
+            distance1.compareTo(distance2)
+        }
+        Collections.sort(locations, comp)
+        return locations
+    }
+
+
+    fun distance(fromLat: Double, fromLon: Double, toLat: Double, toLon: Double): Double {
+        val radius = 6378137.0 // approximate Earth radius, *in meters*
+        val deltaLat = toLat - fromLat
+        val deltaLon = toLon - fromLon
+        val angle = 2 * asin(
+            sqrt(
+                sin(deltaLat / 2).pow(2.0) +
+                        cos(fromLat) * cos(toLat) *
+                        sin(deltaLon / 2).pow(2.0)
+            )
+        )
+        return radius * angle
+    }
+
 
     override fun getMedicationsDetails(id: Int): MedicationsDTO {
         return try {
@@ -96,30 +139,34 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
 
         if (medicine.preservation != null) {
             preserver = PreservationsDTO(
-                    medicine.preservation!!.id,
-                    medicine.preservation!!.timestamp)
+                medicine.preservation!!.id,
+                medicine.preservation!!.timestamp
+            )
         }
 
         category = MedicineCategoryDTO(
-                medicine.category.id,
-                medicine.category.name,
-                medicine.category.imageUrl)
+            medicine.category.id,
+            medicine.category.name,
+            medicine.category.imageUrl
+        )
 
         user = MedicineUserDTO(
-                medicine.user.id,
-                medicine.user.username,
-                medicine.user.phone,
-                medicine.user.fullName,
-                medicine.user.pictureUrl)
+            medicine.user.id,
+            medicine.user.username,
+            medicine.user.phone,
+            medicine.user.fullName,
+            medicine.user.pictureUrl
+        )
 
         return MedicationsDTO(
-                medicine.id,
-                medicine.name,
-                medicine.lang,
-                medicine.lat,
-                medicine.imageUrl,
-                medicine.addressTitle,
-                user, category, preserver)
+            medicine.id,
+            medicine.name,
+            medicine.lang,
+            medicine.lat,
+            medicine.imageUrl,
+            medicine.addressTitle,
+            user, category, preserver
+        )
     }
 
 
@@ -137,23 +184,25 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
             val imgUrl = filesStorageService.storeFile(file)
 
             val fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                    .path("/storage/downloadFile/")
-                    .path(imgUrl)
-                    .toUriString()
+                .path("/storage/downloadFile/")
+                .path(imgUrl)
+                .toUriString()
 
 
             val postingUser = userRepository.getOne(medicationCreationForm.userId)
             val medicationCategory = categoryRepository.getOne(medicationCreationForm.categoryId)
 
-            val medicine = Medication(name = medicationCreationForm.name,
-                    lang = medicationCreationForm.lang,
-                    lat = medicationCreationForm.lat,
-                    addressTitle = medicationCreationForm.address,
-                    user = postingUser,
-                    category = medicationCategory,
-                    imageUrl = fileDownloadUri,
-                    timestamp = Timestamp(Date().time),
-                    preservation = null)
+            val medicine = Medication(
+                name = medicationCreationForm.name,
+                lang = medicationCreationForm.lang,
+                lat = medicationCreationForm.lat,
+                addressTitle = medicationCreationForm.address,
+                user = postingUser,
+                category = medicationCategory,
+                imageUrl = fileDownloadUri,
+                timestamp = Timestamp(Date().time),
+                preservation = null
+            )
 
             medicationRepository.save(medicine)
 
@@ -179,17 +228,20 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
                         if (medicine.preservation != null) {
                             return ResponseWrapper(false, "alreadyPreserved", null)
                         }
-                        val preserver = Preservation(timestamp = Timestamp(System.currentTimeMillis()),
-                                medication = medicine, user = user)
+                        val preserver = Preservation(
+                            timestamp = Timestamp(System.currentTimeMillis()),
+                            medication = medicine, user = user
+                        )
                         preservationRepository.save(preserver)
                         medicine.preservation = preserver
                         medicationRepository.save(medicine)
                         firebaseMessagingService
-                                .sendNotification(
-                                        medicine.user.id.toString(),
-                                        PRESERVATION_TITLE,
-                                        "تم حجز دوائك بعنوان ${medicine.name} بنجاح ",
-                                        PRESERVATION_CHANNEL)
+                            .sendNotification(
+                                medicine.user.id.toString(),
+                                PRESERVATION_TITLE,
+                                "تم حجز دوائك بعنوان ${medicine.name} بنجاح ",
+                                PRESERVATION_CHANNEL
+                            )
                         return ResponseWrapper(true, "medicine preserved successfully", null)
                     }
                 }
@@ -227,11 +279,13 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
             val selectedMedication = medicationRepository.getOne(medicationId)
             val preserverUser = selectedMedication.preservation?.user
             if (preserverUser != null) {
-                val sentUser = MedicineUserDTO(preserverUser.id,
-                        preserverUser.username,
-                        preserverUser.phone,
-                        preserverUser.fullName,
-                        preserverUser.pictureUrl)
+                val sentUser = MedicineUserDTO(
+                    preserverUser.id,
+                    preserverUser.username,
+                    preserverUser.phone,
+                    preserverUser.fullName,
+                    preserverUser.pictureUrl
+                )
                 ResponseWrapper(true, "done", sentUser)
             } else throw ServiceException("preserver info not found")
         } catch (e: Exception) {
@@ -272,7 +326,11 @@ class MedicationsServiceImpl @Autowired constructor(val medicationRepository: Me
                 }
             }
             for (medicine in listOfMedications) {
-                val userPreservation = UserPreservationDTO(medicine.preservation?.id, convertMedicationEntityToDTO(medicine), medicine.preservation?.timestamp)
+                val userPreservation = UserPreservationDTO(
+                    medicine.preservation?.id,
+                    convertMedicationEntityToDTO(medicine),
+                    medicine.preservation?.timestamp
+                )
                 listOfPreservation.add(userPreservation)
             }
             ResponseWrapper(true, "done", listOfPreservation)
