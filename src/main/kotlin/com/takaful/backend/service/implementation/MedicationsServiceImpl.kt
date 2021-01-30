@@ -56,9 +56,10 @@ class MedicationsServiceImpl @Autowired constructor(
                 listOfMedicationsDTOs.add(convertMedicationEntityToDTO(medicine))
             }
 
-            listOfMedicationsDTOs = sortLocations(listOfMedicationsDTOs, latitude.toDouble(), longitude.toDouble())
 
-            pagination.getListAfterPaging(listOfMedicationsDTOs, page, size) as Pageable<MedicationsDTO>
+            pagination.getListAfterPaging(
+                sortLocations(listOfMedicationsDTOs, latitude.toDouble(), longitude.toDouble()), page, size
+            ) as Pageable<MedicationsDTO>
 
         } catch (ex: Exception) {
             ex.printStackTrace()
@@ -72,13 +73,26 @@ class MedicationsServiceImpl @Autowired constructor(
         myLatitude: Double,
         myLongitude: Double
     ): MutableList<MedicationsDTO> {
-        val comp = Comparator<MedicationsDTO> { med, _ ->
-            val distance1 = distance(myLatitude, myLongitude, med.lat, med.lang)
-            val distance2 = distance(myLatitude, myLongitude, med.lat, med.lang)
-            distance1.compareTo(distance2)
+        val medicationsDistance = mutableMapOf<Double, MedicationsDTO>()
+        locations.forEach { medication ->
+            medicationsDistance[distance(myLatitude, myLongitude, medication.lat, medication.lang)] = medication
         }
-        Collections.sort(locations, comp)
-        return locations
+
+
+        var sortedDistances = medicationsDistance.keys.sorted()
+
+
+        val sortedMedications = mutableListOf<MedicationsDTO>()
+
+        sortedDistances.forEach { key ->
+
+            val med = medicationsDistance[key]
+            if (med != null)
+                sortedMedications.add(med)
+        }
+
+
+        return sortedMedications
     }
 
 
